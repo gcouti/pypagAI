@@ -381,17 +381,14 @@ class RN:
 
         # # add the match matrix with the second input vector sequence
         g_response = Dense(hidden, activation='relu', input_dim=lstm_units)(response)
-        g_response = Dropout(drop_out)(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
-        g_response = Dropout(drop_out)(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
-        g_response = Dropout(drop_out)(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
 
+        g_response = g_response.reshape()
+
         f_response = Dense(hidden, activation='relu', input_dim=hidden)(g_response)
-        f_response = Dropout(drop_out)(f_response)
         f_response = Dense(hidden, activation='relu')(f_response)
-        f_response = Dropout(drop_out)(f_response)
         f_response = Dense(hidden, activation='relu')(f_response)
         f_response = Dropout(drop_out)(f_response)
 

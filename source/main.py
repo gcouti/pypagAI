@@ -61,6 +61,7 @@ from my_agents import N2NMemAgent, DummyAgent, RNAgent
             - https://github.com/deepmind/dnc/blob/master/train.py
         RN
             - https://github.com/kimhc6028/relational-networks/blob/master/model.py
+            - https://index.pocketcluster.io/shaohua0116-relation-network-tensorflow.html
 """
 
 
