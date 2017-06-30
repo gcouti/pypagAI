@@ -380,14 +380,14 @@ class RN:
         response = concatenate([story_encoded, question_encoded])
 
         # # add the match matrix with the second input vector sequence
-        g_response = Dense(hidden, activation='relu', input_dim=lstm_units)(response)
+        g_response = Dense(hidden, activation='relu', input_dim=lstm_units, name='g')(response)
         g_response = Dense(hidden, activation='relu')(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
 
         g_response = g_response.reshape()
 
-        f_response = Dense(hidden, activation='relu', input_dim=hidden)(g_response)
+        f_response = Dense(hidden, activation='relu', input_dim=hidden, name='f')(g_response)
         f_response = Dense(hidden, activation='relu')(f_response)
         f_response = Dense(hidden, activation='relu')(f_response)
         f_response = Dropout(drop_out)(f_response)
