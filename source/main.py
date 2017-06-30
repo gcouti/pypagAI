@@ -11,6 +11,7 @@ import sys
 import time
 
 import copy
+import parlai
 
 from parlai.agents.ir_baseline.ir_baseline import IrBaselineAgent
 from parlai.core.dict import DictionaryAgent
@@ -110,8 +111,7 @@ if __name__ == "__main__":
     argparser.add_argument('--num-its', default=100, type=int)
     argparser.add_argument('--dict-max-exs', default=1000, type=int)
 
-    opt ={}
-    opt['model'] = 'baseline'
+    dictionary, opt = create_dictionary(argparser)
 
     if opt['model'] == 'baseline':
         print('Baseline Model')
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     elif opt['model'] == 'memnn':
         print('MemoryNN Model')
         ParsedRemoteAgent.add_cmdline_args(argparser)
-        dictionary, opt = create_dictionary(argparser)
+
         parlai_home = os.environ['PARLAI_HOME']
         if '--remote-cmd' not in sys.argv:
             if os.system('which luajit') != 0:
@@ -145,7 +145,6 @@ if __name__ == "__main__":
 
         print('N2N Mem Model')
         N2NMemAgent.add_cmdline_args(argparser)
-        dictionary, opt = create_dictionary(argparser)
         opt = argparser.parse_args()
         agent = N2NMemAgent(opt)
 
@@ -153,20 +152,17 @@ if __name__ == "__main__":
 
         print('rn Mem Model')
         RNAgent.add_cmdline_args(argparser)
-        dictionary, opt = create_dictionary(argparser)
         opt = argparser.parse_args()
         agent = RNAgent(opt)
 
     elif opt['model'] == 'dummy':
         print('Dummy Model')
         DummyAgent.add_cmdline_args(argparser)
-        dictionary, opt = create_dictionary(argparser)
         opt = argparser.parse_args()
         agent = DummyAgent(opt)
     else:
         print('Baseline Model')
         IrBaselineAgent.add_cmdline_args(argparser)
-        dictionary, opt = create_dictionary(argparser)
         opt = argparser.parse_args()
         agent = IrBaselineAgent(opt)
 
@@ -210,6 +206,8 @@ if __name__ == "__main__":
             print(world_valid.display())
 
     print('finished in {} s'.format(round(time.time() - start, 2)))
+
+    print(results[0])
 
     with open('result_%s_%s_.csv' % (model_name, task_name), 'w') as file:
         writer = csv.writer(file)

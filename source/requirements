@@ -1,0 +1,3 @@
+keras
+tensorflow
+git+git://github.com/facebookresearch/ParlAI.git@6283bcb4db1568fe43b46972da21ac8695ca3ad4
