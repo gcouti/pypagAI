@@ -209,7 +209,8 @@ class N2NMemAgent(Agent):
 
         history = obs['text'].split('\n')
         inputs_train = np.array([0] * self._story_maxlen)
-        history_vec = self._dictionary.txt2vec("\n".join(history[:len(history) - 1]))
+        history_vec = self._dictionary.txt2vec("\n".join(history[:len(history) - 1]))[:self._story_maxlen]
+
         inputs_train[len(inputs_train) - len(history_vec):] = history_vec
 
         queries_train = np.array([0] * self._query_maxlen)
@@ -271,7 +272,7 @@ class RNAgent(Agent):
         self._story_max_len = 15 * statement_size
         self._query_max_len = 15 * statement_size
 
-        self._model = RN(opt)
+        self._model = RN(opt, self._vocab_size, self._query_max_len, self._story_max_len)
 
     def save(self, fname):
         self._dictionary.save(fname + '.dict')
@@ -313,9 +314,12 @@ class RNAgent(Agent):
     def _rank_candidates(self, obs):
 
         history = obs['text'].split('\n')
-        inputs_train = np.array([0] * self._story_max_len)
-        history_vec = self._dictionary.txt2vec("\n".join(history[:len(history) - 1]))
-        inputs_train[len(inputs_train) - len(history_vec):] = history_vec
+        inputs_train = []
+        for story in history[:len(history) - 1]:
+            input_s = np.array([0] * self._story_max_len)
+            history_vec = self._dictionary.txt2vec(story)
+            input_s[len(input_s) - len(history_vec):] = history_vec
+            inputs_train.append(input_s)
 
         queries_train = np.array([0] * self._query_max_len)
         query_vec = self._dictionary.txt2vec(history[len(history) - 1])
@@ -328,7 +332,7 @@ class RNAgent(Agent):
         queries_train = np.reshape(queries_train, (len(queries_train), self._query_max_len, 1))
 
         if 'labels' in obs:
-            answers_train = np.array([0.] * self._story_max_len)
+            answers_train = np.array([0.] * self._vocab_size)
             answers_train[self._dictionary.txt2vec(obs['labels'][0])[0]] = 1
             answers_train = np.array([answers_train])
 
@@ -342,19 +346,19 @@ class RNAgent(Agent):
 
 class RN:
 
-    def __init__(self, args):
+    def __init__(self, args, vocab_size, story_maxlen, query_maxlen):
 
-        statement_size = 8
-        self._vocab_size = 15 * statement_size
-        self._story_maxlen = 15 * statement_size
-        self._query_maxlen = 15 * statement_size
+        self._vocab_size = vocab_size
+        self._story_maxlen = story_maxlen
+        self._query_maxlen = query_maxlen
+
         drop_out = 0.5
         embedding = 32
         hidden = 256
         lstm_units = 128
 
         # placeholders
-        story = Input((self._story_maxlen,1))
+        story = Input((self._story_maxlen, 20))
         question = Input((self._query_maxlen,1))
 
         # encoders
@@ -377,26 +381,28 @@ class RN:
         story_encoded = LSTM(lstm_units)(story)
         question_encoded = LSTM(lstm_units)(question)
 
-        response = concatenate([story_encoded, question_encoded])
+        # response = concatenate([story_encoded, question_encoded])
 
         # # add the match matrix with the second input vector sequence
-        g_response = Dense(hidden, activation='relu', input_dim=lstm_units, name='g')(response)
+        g_response = Dense(hidden, activation='relu', input_dim=lstm_units, name='g')(story_encoded)
+        g_response = Dropout(drop_out)(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
+        g_response = Dropout(drop_out)(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
+        g_response = Dropout(drop_out)(g_response)
         g_response = Dense(hidden, activation='relu')(g_response)
 
-        g_response = g_response.reshape()
+        # g_response = Add()(g_response)
 
         f_response = Dense(hidden, activation='relu', input_dim=hidden, name='f')(g_response)
-        f_response = Dense(hidden, activation='relu')(f_response)
+        f_response = Dropout(drop_out)(f_response)
         f_response = Dense(hidden, activation='relu')(f_response)
         f_response = Dropout(drop_out)(f_response)
-
         pred = Dense(self._vocab_size, activation='softmax')(f_response)
 
         self.model = Model(inputs=[story, question], outputs=pred)
 
-        optimizer = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+        optimizer = Adam(lr=2e-4)
         self.model.compile(optimizer=optimizer, loss='binary_crossentropy', metrics=['accuracy'])
 
     def train(self, story, question, answer):

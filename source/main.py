@@ -198,6 +198,8 @@ if __name__ == "__main__":
             report_valid['ITER'] = iteration
             results.append(report_valid)
 
+            print(report_valid)
+
             iteration += 1
 
         # show some example dialogs after training:

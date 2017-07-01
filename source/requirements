@@ -2,3 +2,5 @@ Pillow
 keras
 tensorflow
 git+git://github.com/facebookresearch/ParlAI.git@6283bcb4db1568fe43b46972da21ac8695ca3ad4
+http://download.pytorch.org/whl/cu80/torch-0.1.12.post2-cp35-cp35m-linux_x86_64.whl
+torchvision
