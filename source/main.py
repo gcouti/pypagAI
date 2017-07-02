@@ -109,8 +109,8 @@ if __name__ == "__main__":
     argparser = ParlaiParser()
     argparser.add_argument('--model', default='baseline', type=str)
     argparser.add_argument('--num-examples', default=1000, type=int)
-    argparser.add_argument('--num-its', default=100, type=int)
     argparser.add_argument('--dict-max-exs', default=1000, type=int)
+    argparser.add_argument('--num-its', default=100, type=int)
 
     dictionary, opt = create_dictionary(argparser)
 
