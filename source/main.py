@@ -62,8 +62,8 @@ if __name__ == "__main__":
     # Get command line arguments
     argparser = ParlaiParser()
     argparser.add_argument('--model', default='baseline', type=str)
-    argparser.add_argument('--num-examples', default=1, type=int)
-    argparser.add_argument('--dict-max-exs', default=10, type=int)
+    argparser.add_argument('--num-examples', default=1000, type=int)
+    argparser.add_argument('--dict-max-exs', default=1000, type=int)
     argparser.add_argument('--num-its', default=10, type=int)
 
     opt, a = argparser.parse_known_args()
