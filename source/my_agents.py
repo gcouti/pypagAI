@@ -26,6 +26,7 @@ import collections
 import numpy as np
 import os
 
+from parlai.core.worlds import create_task
 from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops.control_flow_ops import with_dependencies
 
@@ -77,14 +78,52 @@ class DummyAgent(Agent):
         return list(obs['label_candidates'])
 
 
-
-
 class BaseDictAgent(Agent):
+
+    @staticmethod
+    def add_cmdline_args(parser):
+        DictionaryAgent.add_cmdline_args(parser)
 
     def __init__(self, opt):
         super().__init__(opt)
-        self._dictionary = DictionaryAgent(opt)
+        self._dictionary, _ = self.create_dictionary(opt)
         self._episode_done = True
+
+    @staticmethod
+    def create_dictionary(opt):
+        print('Setting up dictionary.')
+
+        # set up dictionary
+        dictionary = DictionaryAgent(opt)
+
+        if not opt.get('dict_loadpath'):
+            # build dictionary since we didn't load it
+            ordered_opt = copy.deepcopy(opt)
+            for datatype in ['train:ordered', 'valid']:
+                # we use train and valid sets to build dictionary
+                ordered_opt['datatype'] = datatype
+                ordered_opt['numthreads'] = 1
+                world_dict = create_task(ordered_opt, dictionary)
+
+                print('Dictionary building on {} data.'.format(datatype))
+                cnt = 0
+                # pass examples to dictionary
+                for _ in world_dict:
+                    cnt += 1
+                    if cnt > opt['dict_max_exs'] and opt['dict_max_exs'] > 0:
+                        print('Processed {} exs, moving on.'.format(
+                            opt['dict_max_exs']))
+                        # don't wait too long...
+                        break
+
+                    world_dict.parley()
+
+            # we need to save the dictionary to load it in memnn (sort it by freq)
+            dictionary.save(opt['dict_file'], sort=True)
+
+            print('Dictionary ready, moving on to training.')
+
+            return dictionary, opt
 
     def save(self, fname):
         self._dictionary.save(fname + '.dict')
@@ -145,6 +184,7 @@ class N2NMemAgent(BaseDictAgent):
     """
     @staticmethod
     def add_cmdline_args(parser):
+        BaseDictAgent.add_cmdline_args(parser)
         parser.add_argument('-lp', '--length_penalty', default=0.5, help='length penalty for responses')
 
     def __init__(self, opt, shared=None):
@@ -190,14 +230,11 @@ class RNAgent(BaseDictAgent):
 
     @staticmethod
     def add_cmdline_args(parser):
-        pass
-        # DictionaryAgent.add_cmdline_args(parser)
-        # parser.add_argument('-lp', '--length_penalty', default=0.5, help='length penalty for responses')
+        BaseDictAgent.add_cmdline_args(parser)
 
     def __init__(self, opt, shared=None):
         super().__init__(opt)
         self.id = 'RNAgent'
-        self._dictionary = DictionaryAgent(opt)
         self.opt = opt
         self.episode_done = True
 
@@ -247,8 +284,7 @@ class EnsembleAgent(BaseDictAgent):
 
     @staticmethod
     def add_cmdline_args(parser):
-        pass
-        # DictionaryAgent.add_cmdline_args(parser)
+        DictionaryAgent.add_cmdline_args(parser)
         # parser.add_argument('-lp', '--length_penalty', default=0.5, help='length penalty for responses')
 
     def __init__(self, opt, shared=None):
@@ -262,9 +298,9 @@ class EnsembleAgent(BaseDictAgent):
         self._query_max_len = 1 * statement_size
         self._max_sentences = 20
 
-        self._rn_model = RN(self._vocab_size, self._query_max_len, self._story_max_len, self._max_sentences)
-        self._nn_model = N2NMemory(self._vocab_size, self._query_max_len, self._story_max_len)
-        self._model = EnsembleNetwork(self._vocab_size, [self._rn_model, self._nn_model])
+        self._rn_model = RN(self._vocab_size, self._story_max_len, self._query_max_len, self._max_sentences)
+        self._nn_model = N2NMemory(self._vocab_size, self._story_max_len*self._max_sentences,  self._query_max_len)
+        self._model = Ensemble(self._vocab_size, [self._rn_model, self._nn_model])
 
     def _rank_candidates(self, obs):
 
@@ -277,26 +313,36 @@ class EnsembleAgent(BaseDictAgent):
             iterator += 1
 
         queries_train = np.array([0] * self._query_max_len)
-        query_vec = self._dictionary.txt2vec(history[len(history) - 1])
+        query_vec = self._dictionary.txt2vec(history[len(history) - 1])[:self._query_max_len]
         queries_train[len(queries_train) - len(query_vec):] = query_vec
         queries_train = np.array([queries_train])
 
-        inputs_train = np.reshape(inputs_train, (1, self._story_max_len, len(inputs_train)))
-        queries_train = np.reshape(queries_train, (len(queries_train), self._query_max_len, 1))
+        inputs_train_nn = np.array([inputs_train.flatten().copy()])
+        queries_train_nn = queries_train.copy()
+
+        inputs_train_rn = np.reshape(inputs_train, (1, self._story_max_len, len(inputs_train)))
+        queries_train_rn = np.reshape(queries_train, (len(queries_train), self._query_max_len, 1))
 
         if 'labels' in obs:
             answers_train = np.array([0.] * self._vocab_size)
             answers_train[self._dictionary.txt2vec(obs['labels'][0])[0]] = 1
             answers_train = np.array([answers_train])
 
-            self._rn_model.train(inputs_train, queries_train, answers_train)
-            self._nn_model.train(inputs_train, queries_train, answers_train)
+            self._rn_model.train(inputs_train_rn, queries_train_rn, answers_train)
+            self._nn_model.train(inputs_train_nn, queries_train_nn, answers_train)
 
-            self._model.train(inputs_train, queries_train, answers_train)
+            nn_pred = self._nn_model.predict(inputs_train_nn, queries_train_nn)
+            rn_pred = self._rn_model.predict(inputs_train_rn, queries_train_rn)
+
+            self._model._model.fit([nn_pred, rn_pred], answers_train, verbose=False, epochs=1)
             return [self._dictionary[np.argmax(answers_train)]]
 
         else:
-            predicted = self._model.predict(inputs_train, queries_train)
+
+            nn_pred = self._nn_model.predict(inputs_train, queries_train)
+            rn_pred = self._rn_model.predict(inputs_train, queries_train)
+
+            predicted = self._model._model.predict([nn_pred, rn_pred], verbose=False)
             return [self._dictionary[int(index)] for index in np.argsort(predicted[0])[::-1][:5]]
 
 
@@ -403,6 +449,27 @@ class N2NMemory(Networks):
 class RN(Networks):
 
     def __init__(self, vocab_size, story_maxlen, query_maxlen, max_sentences):
+        """
+        For the bAbI suite of tasks the natural language inputs must be transformed into a set of objects.  This is a
+        distinctly different requirement from visual QA, where objects were dened as spatially distinct regions in
+        convolved feature maps.  So, we rst identified up to 20 sentences in the support set that were immediately prior
+        to the probe question.  Then, we tagged these sentences with labels indicating their relative position in the
+        support set, and processed each sentence word-by-word with an LSTM (with the same LSTM acting on each sentence
+        independently). We note that this setup invokes minimal prior knowledge, in that we delineate objects as
+        sentences, whereas previous bAbI models processed all word tokens from all support sentences sequentially. It's
+        unclear how much of an advantage this prior knowledge provides, since period punctuation also unambiguously
+        delineates sentences for the token-by-token processing models.  The final state of the sentence-processing-LSTM
+        is considered to be an object.  Similar to visual QA, a separate LSTM produced a question embedding, which was
+        appended to each object pair as input to the RN. Our model was trained on the joint version of bAbI (all 20 tasks
+        simultaneously), using the full dataset of 10K examples per task
+
+        For the bAbI task, each of the 20 sentences in the support set was processed through a 32 unit LSTM to produce
+        an object.  For the RN,g was a four-layer MLP consisting of 256 units per layer.  For f , we used a three-layer
+        MLP consisting of 256, 512, and 159 units, where the final layer was a linear layer that produced logits for a
+        softmax over the answer vocabulary.  A separate LSTM with 32 units was used to process the question.
+        The softmax output was optimized with a cross-entropy loss function using the Adam optimizer with a learning
+        rate of 2e-4 .
+        """
 
         super().__init__()
         self._vocab_size = vocab_size
@@ -433,7 +500,6 @@ class RN(Networks):
             g_response = Dense(hidden, activation='relu', input_dim=lstm_units)(response)
             g_response = Dense(hidden, activation='relu')(g_response)
             g_response = Dense(hidden, activation='relu')(g_response)
-            g_response = Dropout(drop_out)(g_response)
             g_response = Dense(hidden, activation='relu')(g_response)
             responses.append(g_response)
 
@@ -449,7 +515,7 @@ class RN(Networks):
         self._model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
 
 
-class EnsembleNetwork(Networks):
+class Ensemble(Networks):
 
     def __init__(self, vocab_size, models):
 
@@ -460,8 +526,133 @@ class EnsembleNetwork(Networks):
         hidden = 32
         drop_out = 0.3
 
-        input_models = Input((self._vocab_size, len(models)))
-        response = Add()(input_models)
+        input_models = []
+        for i in models:
+            input_models.append(Input((self._vocab_size,)))
+
+        response = add(input_models)
+
+        # # add the match matrix with the second input vector sequence
+        response = Dense(hidden, activation='relu', input_dim=self._vocab_size, name='ens_in')(response)
+        response = Dropout(drop_out)(response)
+        response = Dense(hidden*8, activation='relu')(response)
+        response = Dropout(drop_out)(response)
+        response = Dense(hidden*4, activation='relu')(response)
+        response = Dropout(drop_out)(response)
+        pred = Dense(hidden, activation='softmax')(response)
+
+        self._model = Model(inputs=input_models, outputs=pred)
+        self._model.compile(optimizer=SGD(lr=0.01, clipvalue=0.5), loss='categorical_crossentropy', metrics=['accuracy'])
+
+class EnsembleNetwork(Networks):
+
+    def __init__(self, vocab_size, query_maxlen, story_maxlen, max_sentences):
+
+        super().__init__()
+
+        self._vocab_size = vocab_size
+        self._story_maxlen = story_maxlen
+        self._query_maxlen = query_maxlen
+        self._max_sentences = max_sentences
+
+        # placeholders
+        input_sequence = Input((self._story_maxlen, max_sentences))
+        question = Input((self._query_maxlen, 1))
+
+        model_result = []
+
+        ###########
+        # N2N
+        ###########
+        drop_out = 0.3
+        activation = 'softmax'
+        samples = 32
+        embedding = 64
+
+        # encoders
+        # embed the input sequence into a sequence of vectors
+        input_encoder_m = Sequential()
+        input_encoder_m.add(Embedding(input_dim=self._vocab_size, output_dim=embedding))
+        input_encoder_m.add(Dropout(drop_out))
+        # output: (samples, story_maxlen, embedding_dim)
+
+        # embed the input into a sequence of vectors of size query_maxlen
+        input_encoder_c = Sequential()
+        input_encoder_c.add(Embedding(input_dim=self._vocab_size, output_dim=self._query_maxlen))
+        input_encoder_c.add(Dropout(drop_out))
+        # output: (samples, story_maxlen, query_maxlen)
+
+        # embed the question into a sequence of vectors
+        question_encoder = Sequential()
+        question_encoder.add(Embedding(input_dim=self._vocab_size, output_dim=embedding, input_length=self._query_maxlen))
+        question_encoder.add(Dropout(drop_out))
+        # output: (samples, query_maxlen, embedding_dim)
+
+        # encode input sequence and questions (which are indices)
+        # to sequences of dense vectors
+        input_encoded_m = input_encoder_m(input_sequence)
+        input_encoded_c = input_encoder_c(input_sequence)
+        question_encoded = question_encoder(question)
+
+        # compute a 'match' between the first input vector sequence
+        # and the question vector sequence
+        # shape: `(samples, story_maxlen, query_maxlen)`
+        match = dot([input_encoded_m, question_encoded], axes=(2, 2))
+        match = Activation(activation)(match)
+
+        # add the match matrix with the second input vector sequence
+        response = add([match, input_encoded_c])  # (samples, story_maxlen, query_maxlen)
+        response = Permute((2, 1))(response)  # (samples, query_maxlen, story_maxlen)
+
+        # concatenate the match matrix with the question vector sequence
+        answer = concatenate([response, question_encoded])
+
+        # the original paper uses a matrix multiplication for this reduction step.
+        # we choose to use a RNN instead.
+        answer = SimpleRNN(samples)(answer)  # (samples, 32)
+
+        # one regularization layer -- more would probably be needed.
+        answer = Dropout(drop_out)(answer)
+        answer = Dense(self._vocab_size)(answer)  # (samples, vocab_size)
+        # we output a probability distribution over the vocabulary
+        answer = Activation(activation)(answer)
+        model_result.append(answer)
+
+        #################################
+        # RN
+        #################################
+        drop_out = 0.5
+        hidden = 256
+        lstm_units = 32
+
+        # placeholders
+        question_encoded = LSTM(lstm_units)(question)
+
+        responses = []
+        for i in range(input_sequence.shape[2]):
+
+            # input_i = story
+            input_i = Lambda(lambda x: x[:, :, i])(input_sequence)
+            input_i = Reshape((self._story_maxlen, 1))(input_i)
+            story_encoded = LSTM(lstm_units)(input_i)
+            response = concatenate([story_encoded, question_encoded])
+
+            # # add the match matrix with the second input vector sequence
+            g_response = Dense(hidden, activation='relu', input_dim=lstm_units)(response)
+            g_response = Dense(hidden, activation='relu')(g_response)
+            g_response = Dense(hidden, activation='relu')(g_response)
+            g_response = Dense(hidden, activation='relu')(g_response)
+            responses.append(g_response)
+
+        responses = add(responses)
+
+        f_response = Dense(hidden, activation='relu', input_dim=hidden, name='f')(responses)
+        f_response = Dense(512, activation='relu')(f_response)
+        f_response = Dropout(drop_out)(f_response)
+        pred = Dense(self._vocab_size, activation='softmax')(f_response)
+        model_result.append(pred)
+
+        response = Add()(model_result)
 
         # # add the match matrix with the second input vector sequence
         response = Dense(hidden, activation='relu', input_dim=self._vocab_size)(response)
@@ -472,5 +663,5 @@ class EnsembleNetwork(Networks):
         response = Dropout(drop_out)(response)
         pred = Dense(hidden, activation='softmax')(response)
 
-        self._model = Model(inputs=models, outputs=pred)
+        self._model = Model(inputs=[input_sequence, question], outputs=pred)
         self._model.compile(optimizer=SGD(lr=0.01, clipvalue=0.5), loss='categorical_crossentropy', metrics=['accuracy'])

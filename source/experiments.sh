@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 pushd .
-source env/bin/activate
+source ../env/bin/activate
 popd
 
 echo "Python version $(python --version)"

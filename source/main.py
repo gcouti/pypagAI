@@ -6,19 +6,12 @@ import os
 # Comment this if tensor flow crash
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-
-import sys
 import time
 
-import copy
-import parlai
-
 from parlai.agents.ir_baseline.ir_baseline import IrBaselineAgent
-from parlai.core.dict import DictionaryAgent
 from parlai.core.worlds import create_task
 from parlai.core.params import ParlaiParser
-from parlai.agents.remote_agent.remote_agent import ParsedRemoteAgent
-from my_agents import N2NMemAgent, DummyAgent, RNAgent
+from my_agents import N2NMemAgent, DummyAgent, RNAgent, EnsembleAgent
 
 
 """
@@ -63,100 +56,46 @@ from my_agents import N2NMemAgent, DummyAgent, RNAgent
             - https://github.com/kimhc6028/relational-networks/blob/master/model.py
             - https://index.pocketcluster.io/shaohua0116-relation-network-tensorflow.html
 """
-
-
-def create_dictionary(argparser):
-    print('Setting up dictionary.')
-    # set up dictionary
-    DictionaryAgent.add_cmdline_args(argparser)
-    opt = argparser.parse_args()
-    dictionary = DictionaryAgent(opt)
-
-    if not opt.get('dict_loadpath'):
-        # build dictionary since we didn't load it
-        ordered_opt = copy.deepcopy(opt)
-        for datatype in ['train:ordered', 'valid']:
-            # we use train and valid sets to build dictionary
-            ordered_opt['datatype'] = datatype
-            ordered_opt['numthreads'] = 1
-            world_dict = create_task(ordered_opt, dictionary)
-
-            print('Dictionary building on {} data.'.format(datatype))
-            cnt = 0
-            # pass examples to dictionary
-            for _ in world_dict:
-                cnt += 1
-                if cnt > opt['dict_max_exs'] and opt['dict_max_exs'] > 0:
-                    print('Processed {} exs, moving on.'.format(
-                        opt['dict_max_exs']))
-                    # don't wait too long...
-                    break
-
-                world_dict.parley()
-
-        # we need to save the dictionary to load it in memnn (sort it by freq)
-        dictionary.save(opt['dict_file'], sort=True)
-
-        print('Dictionary ready, moving on to training.')
-
-        return dictionary, opt
-
-
 if __name__ == "__main__":
 
     print("Start experiments")
     # Get command line arguments
     argparser = ParlaiParser()
     argparser.add_argument('--model', default='baseline', type=str)
-    argparser.add_argument('--num-examples', default=1000, type=int)
-    argparser.add_argument('--dict-max-exs', default=1000, type=int)
-    argparser.add_argument('--num-its', default=100, type=int)
+    argparser.add_argument('--num-examples', default=1, type=int)
+    argparser.add_argument('--dict-max-exs', default=10, type=int)
+    argparser.add_argument('--num-its', default=10, type=int)
 
-    dictionary, opt = create_dictionary(argparser)
+    opt, a = argparser.parse_known_args()
 
-    if opt['model'] == 'baseline':
+    if opt.model == 'baseline':
         print('Baseline Model')
         IrBaselineAgent.add_cmdline_args(argparser)
 
         opt = argparser.parse_args()
         agent = IrBaselineAgent(opt)
 
-    elif opt['model'] == 'memnn':
-        print('MemoryNN Model')
-        ParsedRemoteAgent.add_cmdline_args(argparser)
-
-        parlai_home = os.environ['PARLAI_HOME']
-        if '--remote-cmd' not in sys.argv:
-            if os.system('which luajit') != 0:
-                raise RuntimeError('Could not detect torch luajit installed: ' +
-                                   'please install torch from http://torch.ch ' +
-                                   'or manually set --remote-cmd for this example.')
-            sys.argv.append('--remote-cmd')
-            sys.argv.append('luajit {}/parlai/agents/'.format(parlai_home) +
-                            'memnn_luatorch_cpu/memnn_zmq_parsed.lua')
-
-        if '--remote-args' not in sys.argv:
-            sys.argv.append('--remote-args')
-            sys.argv.append('{}/examples/'.format(parlai_home) +
-                            'memnn_luatorch_cpu/params_default.lua')
-
-        agent = ParsedRemoteAgent(opt, {'dictionary': dictionary})
-
-    elif opt['model'] == 'n2nmem':
+    elif opt.model == 'n2nmem':
 
         print('N2N Mem Model')
         N2NMemAgent.add_cmdline_args(argparser)
         opt = argparser.parse_args()
         agent = N2NMemAgent(opt)
 
-    elif opt['model'] == 'rn':
+    elif opt.model == 'rn':
 
         print('rn Mem Model')
         RNAgent.add_cmdline_args(argparser)
         opt = argparser.parse_args()
         agent = RNAgent(opt)
 
-    elif opt['model'] == 'dummy':
+    elif opt.model == 'ensemble':
+        print('Ensemble Model')
+        EnsembleAgent.add_cmdline_args(argparser)
+        opt = argparser.parse_args()
+        agent = EnsembleAgent(opt)
+
+    elif opt.model == 'dummy':
         print('Dummy Model')
         DummyAgent.add_cmdline_args(argparser)
         opt = argparser.parse_args()
