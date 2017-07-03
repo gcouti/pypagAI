@@ -300,7 +300,7 @@ class EnsembleAgent(BaseDictAgent):
 
         self._rn_model = RN(self._vocab_size, self._story_max_len, self._query_max_len, self._max_sentences)
         self._nn_model = N2NMemory(self._vocab_size, self._story_max_len*self._max_sentences,  self._query_max_len)
-        self._model = Ensemble(self._vocab_size, [self._rn_model, self._nn_model])
+        self._model = EnsembleNetwork(self._vocab_size, [self._rn_model, self._nn_model])
 
     def _rank_candidates(self, obs):
 
@@ -339,12 +339,62 @@ class EnsembleAgent(BaseDictAgent):
 
         else:
 
-            nn_pred = self._nn_model.predict(inputs_train, queries_train)
-            rn_pred = self._rn_model.predict(inputs_train, queries_train)
+            nn_pred = self._nn_model.predict(inputs_train_nn, queries_train_nn)
+            rn_pred = self._rn_model.predict(inputs_train_rn, queries_train_rn)
 
             predicted = self._model._model.predict([nn_pred, rn_pred], verbose=False)
             return [self._dictionary[int(index)] for index in np.argsort(predicted[0])[::-1][:5]]
 
+
+class EnsembleNetworkAgent(BaseDictAgent):
+
+    @staticmethod
+    def add_cmdline_args(parser):
+        DictionaryAgent.add_cmdline_args(parser)
+        # parser.add_argument('-lp', '--length_penalty', default=0.5, help='length penalty for responses')
+
+    def __init__(self, opt, shared=None):
+        super().__init__(opt)
+        self.id = 'EnsembleAgent'
+        self.opt = opt
+
+        statement_size = 8
+        self._vocab_size = len(self._dictionary)
+        self._story_max_len = 1 * statement_size
+        self._query_max_len = 1 * statement_size
+        self._max_sentences = 20
+
+        self._model = EnsembleNetwork(self._vocab_size, self._story_max_len, self._query_max_len, self._vocab_size)
+
+    def _rank_candidates(self, obs):
+
+        iterator = 0
+        history = obs['text'].split('\n')
+        inputs_train = np.zeros((self._max_sentences, self._story_max_len))
+        for story in history[:len(history) - 1][len(history) - self._max_sentences if len(history) > self._max_sentences else 0:]:
+            history_vec = self._dictionary.txt2vec(story)[:self._story_max_len]
+            inputs_train[iterator][:len(history_vec)] = history_vec
+            iterator += 1
+
+        queries_train = np.array([0] * self._query_max_len)
+        query_vec = self._dictionary.txt2vec(history[len(history) - 1])[:self._query_max_len]
+        queries_train[len(queries_train) - len(query_vec):] = query_vec
+        queries_train = np.array([queries_train])
+
+        inputs_train = np.reshape(inputs_train, (1, self._story_max_len, len(inputs_train)))
+        queries_train = np.reshape(queries_train, (len(queries_train), self._query_max_len, 1))
+
+        if 'labels' in obs:
+            answers_train = np.array([0.] * self._vocab_size)
+            answers_train[self._dictionary.txt2vec(obs['labels'][0])[0]] = 1
+            answers_train = np.array([answers_train])
+
+            self._model.train(inputs_train, queries_train, answers_train)
+            return [self._dictionary[np.argmax(answers_train)]]
+
+        else:
+            predicted = self._model.predict(inputs_train, queries_train)
+            return [self._dictionary[int(index)] for index in np.argsort(predicted[0])[::-1][:5]]
 
 class Networks:
 
@@ -539,7 +589,7 @@ class Ensemble(Networks):
         response = Dropout(drop_out)(response)
         response = Dense(hidden*4, activation='relu')(response)
         response = Dropout(drop_out)(response)
-        pred = Dense(hidden, activation='softmax')(response)
+        pred = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=input_models, outputs=pred)
         self._model.compile(optimizer=SGD(lr=0.01, clipvalue=0.5), loss='categorical_crossentropy', metrics=['accuracy'])
@@ -590,8 +640,9 @@ class EnsembleNetwork(Networks):
 
         # encode input sequence and questions (which are indices)
         # to sequences of dense vectors
-        input_encoded_m = input_encoder_m(input_sequence)
-        input_encoded_c = input_encoder_c(input_sequence)
+        nn_input_sequence = Reshape((self._story_maxlen*self._max_sentences, 1))(input_sequence)
+        input_encoded_m = input_encoder_m(nn_input_sequence)
+        input_encoded_c = input_encoder_c(question)
         question_encoded = question_encoder(question)
 
         # compute a 'match' between the first input vector sequence
@@ -661,7 +712,7 @@ class EnsembleNetwork(Networks):
         response = Dropout(drop_out)(response)
         response = Dense(hidden, activation='relu')(response)
         response = Dropout(drop_out)(response)
-        pred = Dense(hidden, activation='softmax')(response)
+        pred = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[input_sequence, question], outputs=pred)
         self._model.compile(optimizer=SGD(lr=0.01, clipvalue=0.5), loss='categorical_crossentropy', metrics=['accuracy'])

@@ -11,7 +11,7 @@ import time
 from parlai.agents.ir_baseline.ir_baseline import IrBaselineAgent
 from parlai.core.worlds import create_task
 from parlai.core.params import ParlaiParser
-from my_agents import N2NMemAgent, DummyAgent, RNAgent, EnsembleAgent
+from my_agents import N2NMemAgent, DummyAgent, RNAgent, EnsembleAgent, EnsembleNetworkAgent
 
 
 """
@@ -94,6 +94,12 @@ if __name__ == "__main__":
         EnsembleAgent.add_cmdline_args(argparser)
         opt = argparser.parse_args()
         agent = EnsembleAgent(opt)
+
+    elif opt.model == 'enn':
+        print('Ensemble Netwokr Model')
+        EnsembleNetworkAgent.add_cmdline_args(argparser)
+        opt = argparser.parse_args()
+        agent = EnsembleNetworkAgent(opt)
 
     elif opt.model == 'dummy':
         print('Dummy Model')
