@@ -638,4 +638,4 @@ class EnsembleNetwork(Networks):
         pred = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[input_sequence, question], outputs=pred)
-        self._model.compile(optimizer=SGD(lr=0.01, clipvalue=0.5), loss='categorical_crossentropy', metrics=['accuracy'])
+        self._model.compile(optimizer="adadelta", loss='categorical_crossentropy', metrics=['accuracy'])
