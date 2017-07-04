@@ -596,16 +596,12 @@ class Ensemble(Networks):
         response = add(input_models)
 
         # # add the match matrix with the second input vector sequence
-        response = Dense(hidden, activation='relu', input_dim=self._vocab_size, name='ens_in')(response)
-        response = Dropout(drop_out)(response)
-        response = Dense(hidden*8, activation='relu')(response)
-        response = Dropout(drop_out)(response)
-        response = Dense(hidden*4, activation='relu')(response)
-        response = Dropout(drop_out)(response)
+        response = Dense(hidden, activation='relu', input_dim=self._vocab_size)(response)
+        response = Dense(hidden, activation='relu')(response)
         pred = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=input_models, outputs=pred)
-        self._model.compile(optimizer=SGD(lr=0.01, clipvalue=0.5), loss='categorical_crossentropy', metrics=['accuracy'])
+        self._model.compile(optimizer="adadelta", loss='categorical_crossentropy', metrics=['accuracy'])
 
 class EnsembleNetwork(Networks):
 
