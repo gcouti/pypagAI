@@ -2,17 +2,16 @@ from __future__ import print_function
 
 import csv
 import os
-
-# Comment this if tensor flow crash
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-
 import time
 
 from parlai.agents.ir_baseline.ir_baseline import IrBaselineAgent
+from parlai.core.agents import create_agent
 from parlai.core.worlds import create_task
 from parlai.core.params import ParlaiParser
-from my_agents import N2NMemAgent, DummyAgent, RNAgent, EnsembleAgent, EnsembleNetworkAgent
+from source.agents.my_agents import N2NMemAgent, DummyAgent, RNAgent, EnsembleAgent, EnsembleNetworkAgent
 
+# Comment this if tensor flow crash
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 """
     This is the main file 
@@ -68,15 +67,7 @@ if __name__ == "__main__":
 
     opt, a = argparser.parse_known_args()
 
-    if opt.model == 'baseline':
-        print('Baseline Model')
-        IrBaselineAgent.add_cmdline_args(argparser)
-
-        opt = argparser.parse_args()
-        agent = IrBaselineAgent(opt)
-
-    elif opt.model == 'n2nmem':
-
+    if opt.model == 'n2nmem':
         print('N2N Mem Model')
         N2NMemAgent.add_cmdline_args(argparser)
         opt = argparser.parse_args()
@@ -107,10 +98,10 @@ if __name__ == "__main__":
         opt = argparser.parse_args()
         agent = DummyAgent(opt)
     else:
-        print('Baseline Model')
-        IrBaselineAgent.add_cmdline_args(argparser)
+        # seq2seq, repeat_label, remove_agent, memnn_luatorch_cpu, ir_baseline, drqa
         opt = argparser.parse_args()
-        agent = IrBaselineAgent(opt)
+        print('Custom agents %s' % opt['model'])
+        agent = create_agent(opt)
 
     opt['datatype'] = 'train'
     world_train = create_task(opt, agent)
@@ -143,7 +134,7 @@ if __name__ == "__main__":
             report_valid['ITER'] = iteration
             results.append(report_valid)
 
-            print(report_valid)
+            print('acc:', report_valid['accuracy'], 'f1:', report_valid['f1'], 'hits@k:', report_valid['hits@k'][5])
 
             iteration += 1
 
@@ -154,10 +145,9 @@ if __name__ == "__main__":
             print(world_valid.display())
 
     print('finished in {} s'.format(round(time.time() - start, 2)))
-
     print(results[0])
 
     with open('result_%s_%s_.csv' % (model_name, task_name), 'w') as file:
         writer = csv.writer(file)
         for row in results:
-            writer.writerow([model_name, row['TASK'], row['ITER'], row['accuracy'], row['hits@k'][5], row['hits@k'][10]])
+            writer.writerow([model_name, row['TASK'], row['ITER'], row['accuracy'], row['hits@k'][5]])
