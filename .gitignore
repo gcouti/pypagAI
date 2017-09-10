@@ -4,4 +4,4 @@ env
 *.pyc
 *.csv
 *.swp
-
+log/*
