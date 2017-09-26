@@ -86,9 +86,7 @@ class BaseNeuralNetworkAgent(Agent):
                 i = np.argmax(predictions[i][cands[i]])
                 curr['text'] = curr['text_candidates'][i]
             else:
-                curr['text'] = ' '.join(self._dictionary.vec2txt([np.argmax(predictions[i])]))
-
-            # batch_reply[i] = curr
+                curr['text'] = self._dictionary.vec2txt([np.argmax(predictions[i])])
 
         return batch_reply
 
@@ -119,6 +117,7 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
         BaseNeuralNetworkAgent.add_cmdline_args(parser)
 
         agent = parser.add_argument_group('Keras Arguments')
+        agent.add_argument('-kv', '--keras-verbose', type=bool, default=False, help='Keras verbose outputs')
         agent.add_argument('-kbs', '--keras-batch-size', type=int, default=1024, help='Batch size of keras')
         agent.add_argument('-ke', '--keras-epochs', type=int, default=1000, help='Keras number of epochs')
         agent.add_argument('-kefd', '--exclude-from-dict', type=int, default=5,
@@ -128,6 +127,7 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
     def __init__(self, opt):
         super().__init__(opt)
         self._model = None
+        self._verbose = opt['keras_verbose']
         self._epoch = opt['keras_epochs']
         self._batch_size = opt['keras_batch_size']
         self._exclude_from_dict = opt['exclude_from_dict']
@@ -186,8 +186,18 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
 
     def predict(self, xs, qs, ys=None, cands=None):
         if ys is not None:
-            self._model.fit(xs, ys, verbose=True, batch_size=self._batch_size, epochs=self._epoch, callbacks=[callback])
+            self._model.fit(self.format_input(xs, qs), ys, verbose=self._verbose, batch_size=self._batch_size, epochs=self._epoch, callbacks=[callback])
             return ys, cands
         else:
-            predictions = self._model.predict(xs)
+            predictions = self._model.predict(self.format_input(xs, qs))
             return predictions, cands
+
+    def format_input(self, xs, qs):
+        """
+        Format how the network will recieve the inputs
+        :param xs: Values from history
+        :param qs: Values from questions
+
+        :return: Expected format from keras models
+        """
+        return [xs, qs]

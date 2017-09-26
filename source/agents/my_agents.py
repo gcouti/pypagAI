@@ -44,11 +44,14 @@ class DummyAgent(Agent):
         if 'label_candidates' in obs and len(obs['label_candidates']) > 0:
             reply['text_candidates'] = list(obs['label_candidates'])
             reply['text'] = np.random.choice(reply['text_candidates'], 1)[0]
+            # if 'labels' in obs:
+            #     reply['text'] = obs['labels'][0]
         else:
             reply['text'] = "I don't know."
         return reply
 
-class RNNAgent(BaseKerasAgent):
+
+class EncoderAgent(BaseKerasAgent):
 
     @staticmethod
     def add_cmdline_args(parser):
@@ -56,23 +59,24 @@ class RNNAgent(BaseKerasAgent):
 
     def __init__(self, opt, shared=None):
         super().__init__(opt)
-        self.id = 'RNNAgent'
+        self.id = 'EncoderAgent'
         self.opt = opt
 
         # placeholders
         input_sequence = Input(shape=(self._text_max_size, ))
-        # question = Input((128))
+        input_question = Input(shape=(self._text_max_size, ))
+
+        input_concatenated = concatenate([input_sequence, input_question])
 
         # # add the match matrix with the second input vector sequence
-        response = Dense(32, activation='relu')(input_sequence)
-        response = Dense(16, activation='relu')(response)
+        response = Dense(16, activation='relu')(input_concatenated)
         response = Dense(8, activation='relu')(response)
         response = Dense(4, activation='relu')(response)
         response = Dense(8, activation='relu')(response)
         response = Dense(16, activation='relu')(response)
         pred = Dense(len(self._dictionary), activation='softmax')(response)
 
-        self._model = Model(inputs=input_sequence, outputs=pred)
+        self._model = Model(inputs=[input_sequence, input_question], outputs=pred)
         self._model.compile(optimizer="adadelta", loss='categorical_crossentropy', metrics=['accuracy'])
 
 
