@@ -1,7 +1,8 @@
 .idea/
-env
 *__pycache__*
 *.pyc
 *.csv
 *.swp
 log/*
+.env/
+log/
