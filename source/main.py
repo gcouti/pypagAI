@@ -16,6 +16,8 @@ To save model in the end of the execution run with --save or -s
 To see other options -h
 
 """
+from copy import deepcopy, copy
+from datetime import datetime
 
 from parlai.core.agents import create_agent
 from parlai.core.worlds import create_task
@@ -25,6 +27,8 @@ import build_dict
 import math
 
 from experiments.evaluation import run_eval
+
+TEMPORARY_MODAL_PATH = '/tmp/tmp_modal_%i' % datetime.now().timestamp()
 
 
 def setup_args():
@@ -112,17 +116,21 @@ class ExperimentFlow:
         valid_report, valid_world = run_eval(self.agent, opt, 'valid', opt['validation_max_exs'], valid_world=self.valid_world)
 
         if valid_report[opt['validation_metric']] > self.best_valid:
-            self.best_valid = valid_report[opt['validation_metric']]
+
             self.impatience = 0
+            self.best_valid = valid_report[opt['validation_metric']]
             print('[ new best {}: {} ]'.format(opt['validation_metric'], self.best_valid))
-            self.world.save_agents()
+
             self.saved = True
+            self.agent.save(path=TEMPORARY_MODAL_PATH)
+
             if opt['validation_metric'] == 'accuracy' and self.best_valid > opt['validation_cutoff']:
                 print('[ task solved! stopping. ]')
                 return True
         else:
             self.impatience += 1
             print('[ did not beat best {}: {} impatience: {} ]'.format(  opt['validation_metric'], round(self.best_valid, 4),self.impatience))
+
         self.validate_time.reset()
 
         if 0 <= opt['validation_patience'] <= self.impatience:
@@ -210,13 +218,9 @@ class ExperimentFlow:
                     if stop_training:
                         break
 
-        if not self.saved:
-            # save agent
-            world.save_agents()
-
-        elif opt.get('model_file'):
-            # reload best validation model
-            self.agent = create_agent(opt)
+        print("\n[ load best model ]")
+        # Reload best model
+        self.agent.load(TEMPORARY_MODAL_PATH)
 
         print("\n[ final results ]")
         run_eval(self.agent, opt, 'valid', write_log=True)

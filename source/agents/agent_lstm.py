@@ -19,7 +19,8 @@ class SimpleSeq2Seq(Networks):
         self._story_maxlen = story_maxlen
         self._query_maxlen = story_maxlen
 
-        hidden = 32
+        layers = 16
+        hidden = 128
         story = Input((self._story_maxlen,), name='story')
         question = Input((self._query_maxlen,), name='question')
 
@@ -27,7 +28,10 @@ class SimpleSeq2Seq(Networks):
         rconc = Reshape((self._story_maxlen*2, 1))(conc)
 
         response = LSTM(hidden, return_sequences=True)(rconc)
-        response = LSTM(hidden, return_sequences=True)(response)
+
+        for _ in range(0, layers):
+            response = LSTM(hidden, return_sequences=True)(response)
+
         response = LSTM(hidden)(response)
 
         response = Dense(self._vocab_size, activation='softmax')(response)

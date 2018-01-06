@@ -25,6 +25,7 @@ class BaseNeuralNetworkAgent(Agent):
         super().__init__(opt)
         self._dictionary = DictionaryAgent(opt)
         self._episode_done = True
+        self._prev_dialogue = ""
         self._text_max_size = opt['text_max_size']
         self._model_file = self.opt.get('model_file', None)
         self._use_candidates = self.opt.get('use_candidates')
@@ -41,14 +42,15 @@ class BaseNeuralNetworkAgent(Agent):
     def reset(self):
         super().reset()
         self._episode_done = True
+        self._prev_dialogue = ""
 
     def observe(self, obs):
         observation = copy.deepcopy(obs)
         if not self._episode_done:
             # if the last example wasn't the end of an episode, then we need to
             # recall what was said in that example
-            prev_dialogue = "\n".join(self.observation['text'].split('\n')[:-1])
-            observation['text'] = prev_dialogue + '\n' + observation['text']
+            self._prev_dialogue = "\n".join(self.observation['text'].split('\n')[:-1])
+            observation['text'] = self._prev_dialogue + '\n' + observation['text']
 
         self.observation = observation
         self._episode_done = observation['episode_done']
@@ -207,22 +209,16 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
         :param path: model file location, if it is none it will load the
         """
         path = self._model_file if path is None else path
+        self._model._model.save(path)
 
-        if path:
-            model = {'opt': self.opt}
-            # TODO: save keras model into file
-            # with open(path, 'wb') as write:
-            #     torch.save(model, write)
-
-    @staticmethod
-    def load(path):
+    def load(self, path):
         """Return opt and model states."""
-        model = None
-        with open(path, 'rb') as read:
-            print(read)
-            #TODO: load keras model
+        self._model._model = keras.models.load_model(path)
 
-        return model['opt'], model
+        return self.opt, self._model
+
+    def copy(self):
+        return copy.deepcopy(self)
 
     def predict(self, xs, qs, ys=None, cands=None):
         if ys is not None:
