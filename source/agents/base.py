@@ -84,7 +84,7 @@ class BaseNeuralNetworkAgent(Agent):
             # map the predictions back to non-empty examples in the batch
             # we join with spaces since we produce tokens one at a time
             curr = batch_reply[i]
-            curr['text_candidates'] = [self._dictionary.vec2txt([c]) for c in cands[i]]
+            curr['text_candidates'] = [self._dictionary.vec2txt([a]) for a in np.argsort(predictions)[0][::-1]]
             if self._use_candidates:
                 i = np.argmax(predictions[i][cands[i]])
                 curr['text'] = curr['text_candidates'][i]
@@ -223,7 +223,7 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
     def predict(self, xs, qs, ys=None, cands=None):
         if ys is not None:
             self._model.train(xs, qs, ys)
-            predictions = ys
+            predictions = self._model.predict(xs, qs)
         else:
             predictions = self._model.predict(xs, qs)
 

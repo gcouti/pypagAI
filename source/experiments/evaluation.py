@@ -20,6 +20,7 @@ def run_eval(agent, opt, datatype, max_exs=-1, write_log=False, valid_world=None
     print('[ running eval: ' + datatype + ' ]')
     if 'stream' in opt['datatype']:
         datatype += ':stream'
+
     opt['datatype'] = datatype
     if opt.get('evaltask'):
         opt['task'] = opt['evaltask']
@@ -42,7 +43,7 @@ def run_eval(agent, opt, datatype, max_exs=-1, write_log=False, valid_world=None
     valid_report = valid_world.report()
 
     metrics = datatype + ':' + str(valid_report)
-    print(metrics)
+    # print(metrics)
     if write_log and opt['model_file']:
         # Write out metrics
         f = open(opt['model_file'] + '.' + datatype, 'a+')

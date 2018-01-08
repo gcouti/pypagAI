@@ -28,7 +28,8 @@ import math
 
 from experiments.evaluation import run_eval
 
-TEMPORARY_MODAL_PATH = '/tmp/tmp_modal_%i' % datetime.now().timestamp()
+TEMPORARY_MODEL_PATH = '/tmp/tmp_model_%i' % datetime.now().timestamp()
+TEMPORARY_RESULT_PATH = '/tmp/tmp_model_result_%i.csv' % datetime.now().timestamp()
 
 
 def setup_args():
@@ -53,7 +54,6 @@ def setup_args():
     help_message = 'build dictionary first before training agent'
     main_args.add_argument('-dbf', '--dict-build-first', type='bool', default=True, help=help_message)
 
-    # FIXME: It may does not make sense
     main_args.add_argument('-ltim', '--log-every-n-secs', type=float, default=-1)
 
     main_args.add_argument('-d', '--display-examples', type='bool', default=False)
@@ -122,37 +122,47 @@ class ExperimentFlow:
             print('[ new best {}: {} ]'.format(opt['validation_metric'], self.best_valid))
 
             self.saved = True
-            self.agent.save(path=TEMPORARY_MODAL_PATH)
+            self.agent.save(path=TEMPORARY_MODEL_PATH)
 
             if opt['validation_metric'] == 'accuracy' and self.best_valid > opt['validation_cutoff']:
                 print('[ task solved! stopping. ]')
+                self.log()
                 return True
         else:
             self.impatience += 1
-            print('[ did not beat best {}: {} impatience: {} ]'.format(  opt['validation_metric'], round(self.best_valid, 4),self.impatience))
+            print('[ did not beat best {}: {} impatience: {} ]'.format(opt['validation_metric'], round(self.best_valid, 4), self.impatience))
 
         self.validate_time.reset()
 
         if 0 <= opt['validation_patience'] <= self.impatience:
             print('[ ran out of patience! stopping training. ]')
+            self.log()
             return True
 
+        self.log()
         return False
 
     def log(self):
+        """
+        Log execution messages and print files to investigate results
+        """
+
         opt = self.opt
+
         if opt['display_examples']:
             print(self.world.display() + '\n~~')
+
         logs = ['time:{}s'.format(math.floor(self.train_time.time())), 'parleys:{}'.format(self.parleys)]
 
         # time elapsed
         # get report and update total examples seen so far
         if hasattr(self.agent, 'report'):
             train_report = self.agent.report()
-            self.agent.reset_metrics()
+            # self.agent.reset_metrics()
         else:
             train_report = self.world.report()
-            self.world.reset_metrics()
+            # self.world.reset_metrics()
+
         if hasattr(train_report, 'get') and train_report.get('total'):
             self.total_exs += train_report['total']
             logs.append('total_exs:{}'.format(self.total_exs))
@@ -162,12 +172,15 @@ class ExperimentFlow:
         if opt['num_epochs'] > 0 and self.total_exs > 0 and self.max_exs > 0:
             exs_per_sec = self.train_time.time() / self.total_exs
             time_left = (self.max_exs - self.total_exs) * exs_per_sec
+
         if opt['max_train_time'] > 0:
             other_time_left = opt['max_train_time'] - self.train_time.time()
+
             if time_left is not None:
                 time_left = min(time_left, other_time_left)
             else:
                 time_left = other_time_left
+
         if time_left is not None:
             logs.append('time_left:{}s'.format(math.floor(time_left)))
 
@@ -181,11 +194,26 @@ class ExperimentFlow:
         # join log string and add full metrics report to end of log
         log = '[ {} ] {}'.format(' '.join(logs), train_report)
         print(log)
+        with open(TEMPORARY_RESULT_PATH, 'a') as file:
+            train_report['data'] = logs
+            train_report['params'] = {
+                # 'model': opt[''],
+                'num_epochs': opt['num_epochs'] if 'num_epochs' in opt else -1,
+                'keras_epochs': opt['keras_epochs'] if 'keras_epochs' in opt else -1,
+                'text_max_size': opt['text_max_size'] if 'text_max_size' in opt else -1,
+            }
+            file.write(str(train_report)+"\n")
+
         self.log_time.reset()
 
     def train(self):
         """
         Train model util number of iterations or when it accomplish the task
+
+        TODO: Colocar o nome do modelo no arquivo de resultado
+        TODO: Fazer o log dos resultados de validação e teste
+        TODO: Fazer um python notebook com gráficos
+        TODO: Colocar para rodar os modelos baseline
 
         """
         opt = self.opt
@@ -202,7 +230,6 @@ class ExperimentFlow:
 
                 if opt['num_epochs'] > 0 and ((0 < self.max_parleys <= self.parleys) or self.total_epochs >= opt['num_epochs']):
                     print('[ num_epochs completed:{} time elapsed:{}s ]'.format(opt['num_epochs'], self.train_time.time()))
-                    self.log()
                     break
 
                 if 0 < opt['max_train_time'] < self.train_time.time():
@@ -218,13 +245,15 @@ class ExperimentFlow:
                     if stop_training:
                         break
 
-        print("\n[ load best model ]")
         # Reload best model
-        self.agent.load(TEMPORARY_MODAL_PATH)
+        print("\n[load best model ]")
+        self.agent.load(TEMPORARY_MODEL_PATH)
 
-        print("\n[ final results ]")
-        run_eval(self.agent, opt, 'valid', write_log=True)
-        run_eval(self.agent, opt, 'test', write_log=True)
+        print("\n[final results ]")
+        report, _ = run_eval(self.agent, opt, 'valid', write_log=True)
+        print(report)
+        report, _ = run_eval(self.agent, opt, 'test', write_log=True)
+        print(report)
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ from keras.optimizers import Adam
 from agents.base import Networks, BaseKerasAgent
 
 
-class SimpleSeq2Seq(Networks):
+class SimpleLSTM(Networks):
     """
     Use a simple seq2se neural network
     """
@@ -28,12 +28,10 @@ class SimpleSeq2Seq(Networks):
         rconc = Reshape((self._story_maxlen*2, 1))(conc)
 
         response = LSTM(hidden, return_sequences=True)(rconc)
-
-        for _ in range(0, layers):
-            response = LSTM(hidden, return_sequences=True)(response)
-
         response = LSTM(hidden)(response)
 
+        # for _ in range(0, layers):
+        #     response = LSTM(hidden, return_sequences=True)(response)
         response = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[story, question], outputs=response)
@@ -66,4 +64,4 @@ class LSTMAgent(BaseKerasAgent):
         self._vocab_size = len(self._dictionary)
         self._story_maxlen = 15 * 2
 
-        self._model = SimpleSeq2Seq(self._vocab_size, self._story_maxlen)
+        self._model = SimpleLSTM(self._vocab_size, self._story_maxlen)
