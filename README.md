@@ -18,5 +18,9 @@ setup.sh
 
 ## Results
 
-|Tasks  | LSTM |  IR  |
-|Task01 | 0.0  |  0.0 |
+* **LSTM**
+* **IR** 
+
+|Tasks  | LSTM | IR  |
+| ---   |  :-: | :-: |
+|Task01 |  0.0 | 0.0 |
