@@ -18,8 +18,18 @@ class BaseNeuralNetworkAgent(Agent):
         DictionaryAgent.add_cmdline_args(parser)
 
         agent = parser.add_argument_group('Neural Networks Arguments')
-        agent.add_argument('-tm', '--text-max-size', type=int, default=30, help='Text maximum size')
-        agent.add_argument('-uc', '--use-candidates', type=bool, default=False, help='')
+
+        message = 'Text maximum size'
+        agent.add_argument('-tm', '--text-max-size', type=int, default=30, help=message)
+
+        message = ''
+        agent.add_argument('-uc', '--use-candidates', type=bool, default=False, help=message)
+
+        message = ''
+        agent.add_argument('-iwq', '--input-without-question', type=bool, default=True, help=message)
+
+        message = ''
+        agent.add_argument('-iah', '--input-aggregate-history', type=bool, default=True, help=message)
 
     def __init__(self, opt):
         super().__init__(opt)
@@ -29,6 +39,9 @@ class BaseNeuralNetworkAgent(Agent):
         self._text_max_size = opt['text_max_size']
         self._model_file = self.opt.get('model_file', None)
         self._use_candidates = self.opt.get('use_candidates')
+
+        self._input_without_question = opt['input_without_question']
+        self._input_aggregate_history = opt['input_aggregate_history']
 
     def _parse(self, texts):
         if type(texts) == str:
@@ -47,13 +60,24 @@ class BaseNeuralNetworkAgent(Agent):
     def observe(self, obs):
         observation = copy.deepcopy(obs)
         if not self._episode_done:
+
+            self._episode_done = observation['episode_done']
+
             # if the last example wasn't the end of an episode, then we need to
             # recall what was said in that example
-            self._prev_dialogue = "\n".join(self.observation['text'].split('\n')[:-1])
-            observation['text'] = self._prev_dialogue + '\n' + observation['text']
+            if self._input_without_question:
+                observation['text'] = "\n".join(self.observation['text'].split('\n')[:-1])
+            else:
+                observation['text'] = self.observation['text']
+
+            if self._input_aggregate_history:
+                self._prev_dialogue = self._prev_dialogue + "\n" + observation['text']
+                observation['text'] = self._prev_dialogue
+
+                if self._episode_done:
+                    self._prev_dialogue = ""
 
         self.observation = observation
-        self._episode_done = observation['episode_done']
 
         return observation
 

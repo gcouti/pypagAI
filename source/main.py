@@ -142,7 +142,7 @@ class ExperimentFlow:
         self.log()
         return False
 
-    def log(self):
+    def log(self, report=None, type='train'):
         """
         Log execution messages and print files to investigate results
         """
@@ -156,12 +156,15 @@ class ExperimentFlow:
 
         # time elapsed
         # get report and update total examples seen so far
-        if hasattr(self.agent, 'report'):
-            train_report = self.agent.report()
-            # self.agent.reset_metrics()
+        if report:
+            train_report = report
         else:
-            train_report = self.world.report()
-            # self.world.reset_metrics()
+            if hasattr(self.agent, 'report'):
+                train_report = self.agent.report()
+                self.agent.reset_metrics()
+            else:
+                train_report = self.world.report()
+                self.world.reset_metrics()
 
         if hasattr(train_report, 'get') and train_report.get('total'):
             self.total_exs += train_report['total']
@@ -197,10 +200,13 @@ class ExperimentFlow:
         with open(TEMPORARY_RESULT_PATH, 'a') as file:
             train_report['data'] = logs
             train_report['params'] = {
-                # 'model': opt[''],
+                'type': type,
+                'model': opt['model'],
                 'num_epochs': opt['num_epochs'] if 'num_epochs' in opt else -1,
                 'keras_epochs': opt['keras_epochs'] if 'keras_epochs' in opt else -1,
                 'text_max_size': opt['text_max_size'] if 'text_max_size' in opt else -1,
+                'input_without_question': opt['input_without_question'] if 'input_without_question' in opt else False,
+                'input_aggregate_history': opt['input_aggregate_history'] if 'input_aggregate_history' in opt else False,
             }
             file.write(str(train_report)+"\n")
 
@@ -210,8 +216,6 @@ class ExperimentFlow:
         """
         Train model util number of iterations or when it accomplish the task
 
-        TODO: Colocar o nome do modelo no arquivo de resultado
-        TODO: Fazer o log dos resultados de validação e teste
         TODO: Fazer um python notebook com gráficos
         TODO: Colocar para rodar os modelos baseline
 
@@ -251,9 +255,9 @@ class ExperimentFlow:
 
         print("\n[final results ]")
         report, _ = run_eval(self.agent, opt, 'valid', write_log=True)
-        print(report)
+        self.log(report, 'valid')
         report, _ = run_eval(self.agent, opt, 'test', write_log=True)
-        print(report)
+        self.log(report, 'test')
 
 
 if __name__ == '__main__':
