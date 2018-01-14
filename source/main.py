@@ -16,6 +16,7 @@ To save model in the end of the execution run with --save or -s
 To see other options -h
 
 """
+import json
 from copy import deepcopy, copy
 from datetime import datetime
 
@@ -29,7 +30,7 @@ import math
 from experiments.evaluation import run_eval
 
 TEMPORARY_MODEL_PATH = '/tmp/tmp_model_%i' % datetime.now().timestamp()
-TEMPORARY_RESULT_PATH = '/tmp/tmp_model_result_%i.csv' % datetime.now().timestamp()
+TEMPORARY_RESULT_PATH = '/tmp/tmp_model_result_%i.json' % datetime.now().timestamp()
 
 
 def setup_args():
@@ -126,7 +127,7 @@ class ExperimentFlow:
 
             if opt['validation_metric'] == 'accuracy' and self.best_valid > opt['validation_cutoff']:
                 print('[ task solved! stopping. ]')
-                self.log()
+                self.log(type='valid')
                 return True
         else:
             self.impatience += 1
@@ -136,10 +137,10 @@ class ExperimentFlow:
 
         if 0 <= opt['validation_patience'] <= self.impatience:
             print('[ ran out of patience! stopping training. ]')
-            self.log()
+            self.log(type='valid')
             return True
 
-        self.log()
+        self.log(type='valid')
         return False
 
     def log(self, report=None, type='train'):
@@ -198,7 +199,9 @@ class ExperimentFlow:
         log = '[ {} ] {}'.format(' '.join(logs), train_report)
         print(log)
         with open(TEMPORARY_RESULT_PATH, 'a') as file:
-            train_report['data'] = logs
+            for k, v in [l.split(":") for l in logs]:
+                train_report[k] = v
+
             train_report['params'] = {
                 'type': type,
                 'model': opt['model'],
@@ -208,7 +211,8 @@ class ExperimentFlow:
                 'input_without_question': opt['input_without_question'] if 'input_without_question' in opt else False,
                 'input_aggregate_history': opt['input_aggregate_history'] if 'input_aggregate_history' in opt else False,
             }
-            file.write(str(train_report)+"\n")
+            file.write('\n')
+            json.dump(train_report, file)
 
         self.log_time.reset()
 
@@ -242,6 +246,7 @@ class ExperimentFlow:
 
                 if 0 < opt['log_every_n_secs'] < self.log_time.time():
                     self.log()
+
 
                 if 0 < opt['validation_every_n_secs'] < self.validate_time.time():
                     stop_training = self.validate()

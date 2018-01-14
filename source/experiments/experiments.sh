@@ -1,14 +1,23 @@
 #!/usr/bin/env bash
 
 pushd .
-source ../env/bin/activate
+source ../../.env/bin/activate
 popd
 
 echo "Python version $(python --version)"
 
-MODEL=$1
-for i in $(seq 1 20);
+cd ..
+
+
+MODELS="$(NAME=LSTM PARAMS='as a') $()"
+
+echo $MODELS
+
+for m in $MODELS;
+  do
+  for i in $(seq 1 20);
     do
-    echo "Experiment model $MODEL $i";
-    python main.py --model=$MODEL -t babi:task10k:$i --dict-file=/tmp/dict.txt --num-its=1000
+    echo "Experiment model ${m}  $i";
+    #python main.py --model=$MODEL -t babi:task10k:$i --dict-file=/tmp/dict.txt --num-its=1000
+  done
 done

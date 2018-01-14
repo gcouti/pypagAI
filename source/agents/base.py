@@ -46,11 +46,13 @@ class BaseNeuralNetworkAgent(Agent):
     def _parse(self, texts):
         if type(texts) == str:
             return self._dictionary.txt2vec(texts)
-        else:
+        elif type(texts) in (list, tuple, set):
             result = []
             for t in texts:
                 result.append(self._dictionary.txt2vec(t)[0])
             return result
+        else:
+            raise BaseException("Type not implemented %s " % str(type(texts)))
 
     def reset(self):
         super().reset()
@@ -143,9 +145,11 @@ class BaseNeuralNetworkAgent(Agent):
         # tokenize the text
         parsed = [self._parse('\n'.join(ex['text'].split('\n')[:-1])) for ex in exs]
         xs = self._transform_input_(parsed, max_len=self._text_max_size)
+        xs = keras.utils.np_utils.to_categorical(xs, num_classes=len(self._dictionary))
 
         parsed = [self._parse('\n'.join(ex['text'].split('\n')[-1:])) for ex in exs]
         qs = self._transform_input_(parsed, max_len=self._text_max_size)
+        qs = keras.utils.np_utils.to_categorical(qs, num_classes=len(self._dictionary))
 
         ys = None
         cands = None
@@ -171,7 +175,7 @@ class Networks:
 
     def __init__(self):
         self._model = None
-        self._epochs = 1
+        self._epochs = 10
         self._verbose = False
 
     def train(self, story, question, answer):

@@ -21,17 +21,14 @@ class SimpleLSTM(Networks):
 
         layers = 16
         hidden = 128
-        story = Input((self._story_maxlen,), name='story')
-        question = Input((self._query_maxlen,), name='question')
+        story = Input((self._story_maxlen,self._vocab_size), name='story')
+        question = Input((self._query_maxlen,self._vocab_size), name='question')
 
         conc = concatenate([story, question])
-        rconc = Reshape((self._story_maxlen*2, 1))(conc)
 
-        response = LSTM(hidden, return_sequences=True)(rconc)
+        response = LSTM(hidden, return_sequences=True)(conc)
         response = LSTM(hidden)(response)
 
-        # for _ in range(0, layers):
-        #     response = LSTM(hidden, return_sequences=True)(response)
         response = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[story, question], outputs=response)
