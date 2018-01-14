@@ -12,6 +12,15 @@ Creating a way for machines to reason and understand context is a challenge for 
 
 This code use a ParlAI framework (https://github.com/facebookresearch/ParlAI), and some libraires are required to run. To facilitate the setup process you just can run the script file:
 
+```
 setup.sh
+```
 
 ## Results
+
+* **LSTM**
+* **IR** 
+
+|Tasks  | LSTM | IR  |
+| ---   |  :-: | :-: |
+|Task01 |  0.0 | 0.0 |
