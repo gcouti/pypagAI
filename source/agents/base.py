@@ -20,7 +20,10 @@ class BaseNeuralNetworkAgent(Agent):
         agent = parser.add_argument_group('Neural Networks Arguments')
 
         message = 'Text maximum size'
-        agent.add_argument('-tm', '--text-max-size', type=int, default=30, help=message)
+        agent.add_argument('-sl', '--story-length', type=int, default=15, help=message)
+
+        message = 'Text maximum size'
+        agent.add_argument('-ql', '--query-length', type=int, default=15, help=message)
 
         message = ''
         agent.add_argument('-uc', '--use-candidates', type=bool, default=False, help=message)
@@ -34,9 +37,13 @@ class BaseNeuralNetworkAgent(Agent):
     def __init__(self, opt):
         super().__init__(opt)
         self._dictionary = DictionaryAgent(opt)
+
+        self._categorical = False
         self._episode_done = True
         self._prev_dialogue = ""
-        self._text_max_size = opt['text_max_size']
+        self._story_length = opt['story_length']
+        self._query_length = opt['query_length']
+
         self._model_file = self.opt.get('model_file', None)
         self._use_candidates = self.opt.get('use_candidates')
 
@@ -144,12 +151,18 @@ class BaseNeuralNetworkAgent(Agent):
         # TODO: Fazer alteração aqui para encapsular em uma função que possa ser sobescrita
         # tokenize the text
         parsed = [self._parse('\n'.join(ex['text'].split('\n')[:-1])) for ex in exs]
-        xs = self._transform_input_(parsed, max_len=self._text_max_size)
-        xs = keras.utils.np_utils.to_categorical(xs, num_classes=len(self._dictionary))
+        xs = self._transform_input_(parsed, max_len=self._story_length)
+        xs = xs / float(len(self._dictionary))
+
+        if self._categorical:
+            xs = keras.utils.np_utils.to_categorical(xs, num_classes=len(self._dictionary))
 
         parsed = [self._parse('\n'.join(ex['text'].split('\n')[-1:])) for ex in exs]
-        qs = self._transform_input_(parsed, max_len=self._text_max_size)
-        qs = keras.utils.np_utils.to_categorical(qs, num_classes=len(self._dictionary))
+        qs = self._transform_input_(parsed, max_len=self._query_length)
+        qs = qs / float(len(self._dictionary))
+
+        if self._categorical:
+            qs = keras.utils.np_utils.to_categorical(qs, num_classes=len(self._dictionary))
 
         ys = None
         cands = None

@@ -7,9 +7,7 @@ popd
 echo "Python version $(python --version)"
 
 cd ..
-
-
-MODELS="$(NAME=LSTM PARAMS='as a') $()"
+MODELS="agents.agent_lstm:LSTMAgent"
 
 echo $MODELS
 
@@ -18,6 +16,6 @@ for m in $MODELS;
   for i in $(seq 1 20);
     do
     echo "Experiment model ${m}  $i";
-    #python main.py --model=$MODEL -t babi:task10k:$i --dict-file=/tmp/dict.txt --num-its=1000
+    python main.py -m $m -t babi:task10k:$i --dict-file=/tmp/dict10.txt -vtim 1200 -ltim 60 -vp 5 -bs 256
   done
 done

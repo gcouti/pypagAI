@@ -1,14 +1,14 @@
 import numpy as np
 
 from keras import Model, Input, Sequential
-from keras.layers import Dense, add, concatenate, LSTM, Reshape, Embedding, K
+from keras.layers import Dense, add, concatenate, LSTM, Reshape, Embedding
 from keras.optimizers import Adam
-from keras.utils import to_categorical
 
+from agents.agent_lstm import LSTMAgent
 from agents.base import Networks, BaseKerasAgent
 
 
-class SimpleLSTM(Networks):
+class EmbedLSTM(Networks):
     """
     Use a simple lstm neural network
     """
@@ -27,7 +27,7 @@ class SimpleLSTM(Networks):
         question = Input((self._query_maxlen, ), name='question')
 
         conc = concatenate([story, question])
-        conc = Reshape((1, int(conc.shape[1])))(conc)
+        conc = Embedding(self._vocab_size, 200)(conc)
 
         response = LSTM(hidden, dropout=0.2, recurrent_dropout=0.2)(conc)
         response = Dense(self._vocab_size, activation='softmax')(response)
@@ -36,27 +36,7 @@ class SimpleLSTM(Networks):
         self._model.compile(optimizer=Adam(lr=2e-4), loss='categorical_crossentropy', metrics=['accuracy'])
 
 
-class LSTMAgent(BaseKerasAgent):
-
-    @staticmethod
-    def add_cmdline_args(parser):
-        BaseKerasAgent.add_cmdline_args(parser)
-
-        agent = parser.add_argument_group('LSTM Arguments')
-
-        message = 'Number of hidden layers'
-        agent.add_argument('-hd', '--hidden', type=int, default=128, help=message)
-
-    def __init__(self, opt, shared=None):
-        super().__init__(opt)
-        self.id = 'LSTMAgent'
-        self.opt = opt
-
-        self._vocab_size = len(self._dictionary)
-        self._story_maxlen = opt['story_length']
-        self._query_maxlen = opt['query_length']
-
-        self._create_network_(opt)
+class EmbedLSTMAgent(LSTMAgent):
 
     def _create_network_(self, opt):
         """
@@ -64,4 +44,4 @@ class LSTMAgent(BaseKerasAgent):
 
         :param opt: ParlAI opt params
         """
-        self._model = SimpleLSTM(opt, self._vocab_size, self._story_maxlen, self._query_maxlen)
+        self._model = EmbedLSTM(opt, self._vocab_size, self._story_maxlen, self._query_maxlen)
