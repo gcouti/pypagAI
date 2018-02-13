@@ -1,7 +1,7 @@
 from keras import Input, Model, Sequential
 from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense
 
-from source.agents.base import Networks, BaseKerasAgent, BaseNeuralNetworkAgent
+from agents.base import Networks, BaseKerasAgent, BaseNeuralNetworkAgent
 
 
 class N2NMemory(Networks):
@@ -32,14 +32,14 @@ class N2NMemory(Networks):
         self._vocab_size = vocab_size
 
         # placeholders
-        input_sequence = Input((None, 128))
-        question = Input((None, 128))
+        input_sequence = Input((self._story_maxlen, ))
+        question = Input((self._query_maxlen,))
 
         answer = self.create_network(input_sequence, question)
 
         # build the final model
         self._model = Model([input_sequence, question], answer)
-        self._model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+        self._model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
     def create_network(self, input_sequence, question):
 
@@ -117,7 +117,7 @@ class N2NMemAgent(BaseKerasAgent):
     """
     @staticmethod
     def add_cmdline_args(parser):
-        BaseNeuralNetworkAgent.add_cmdline_args(parser)
+        BaseKerasAgent.add_cmdline_args(parser)
         parser.add_argument('-lp', '--length_penalty', default=0.5, help='length penalty for responses')
 
         agent = parser.add_argument_group('N2NMem Arguments')
@@ -136,38 +136,8 @@ class N2NMemAgent(BaseKerasAgent):
         self.id = 'N2NMemAgent'
         self.opt = opt
 
-        statement_size = 8
         self._vocab_size = len(self._dictionary)
-        self._story_maxlen = 15 * statement_size
-        self._query_maxlen = 1 * statement_size
+        # self._story_maxlen = 68
+        # self._query_maxlen = 4
 
-        self._model = N2NMemory(self._vocab_size, self._story_maxlen, self._query_maxlen)
-
-    def predict(self, xs, qs, ys=None, cands=None):
-        self._model.train(xs, xs, ys)
-
-        # def _rank_candidates(self, obs):
-        #
-        #     history = obs['text'].split('\n')
-        #     inputs_train = np.array([0] * self._story_maxlen)
-        #     history_vec = self._dictionary.txt2vec("\n".join(history[:len(history) - 1]))[:self._story_maxlen]
-        #
-        #     inputs_train[len(inputs_train) - len(history_vec):] = history_vec
-        #
-        #     queries_train = np.array([0] * self._query_maxlen)
-        #     query_vec = self._dictionary.txt2vec(history[len(history) - 1])[:self._query_maxlen]
-        #     queries_train[len(queries_train) - len(query_vec):] = query_vec
-        #
-        #     inputs_train = np.array([inputs_train])
-        #     queries_train = np.array([queries_train])
-        #
-        #     if 'labels' in obs:
-        #         answers_train = [0.] * self._vocab_size
-        #         answers_train[self._dictionary.txt2vec(obs['labels'][0])[0]] = 1
-        #
-        #         self._model.train(inputs_train, queries_train, np.array([answers_train]))
-        #
-        #         return [self._dictionary[np.argmax(answers_train)]]
-        #     else:
-        #         predicted = self._model.predict(inputs_train, queries_train)
-        #         return [self._dictionary[int(index)] for index in np.argsort(predicted[0])[::-1][:5]]
+        self._model = N2NMemory(self._vocab_size, self._story_length, self._query_length)

@@ -33,7 +33,7 @@ class SimpleLSTM(Networks):
         response = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[story, question], outputs=response)
-        self._model.compile(optimizer=Adam(lr=2e-4), loss='categorical_crossentropy', metrics=['accuracy'])
+        self._model.compile(optimizer=Adam(lr=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 class LSTMAgent(BaseKerasAgent):

@@ -6,7 +6,7 @@ import build_dict
 import math
 
 
-def run_eval(agent, opt, datatype, max_exs=-1, write_log=False, valid_world=None):
+def run_eval(agent, opt, datatype, write_log=False, valid_world=None):
     """
     Eval on validation/test data.
 
@@ -36,7 +36,7 @@ def run_eval(agent, opt, datatype, max_exs=-1, write_log=False, valid_world=None
             print(valid_world.display() + '\n~~')
             print(valid_world.report())
         cnt += opt['batchsize']
-        if 0 < max_exs <= cnt:
+        if 0 <  opt['validation_max_exs'] <= cnt:
             # note this max_exs is approximate--some batches won't always be
             # full depending on the structure of the data
             break

@@ -1,16 +1,28 @@
-import numpy as np
-from keras.layers import Dense, Dropout, Input, LSTM, Lambda, Embedding, Flatten
-from keras.layers import add, concatenate, Reshape
+import itertools
+
+from keras import backend as K
+from keras.layers import Dense, Input, LSTM, Embedding, K, Lambda, Reshape
 from keras.models import Model
 from keras.optimizers import Adam
-import itertools
-import tensorflow as tf
-from keras.preprocessing import sequence
-from tensorflow.contrib.layers import batch_norm
-from tensorflow.contrib.layers import fully_connected
-from tensorflow.contrib import rnn
 
 from agents.base import BaseKerasAgent, Networks
+
+
+def combination(x, embedded_question):
+    items = []
+    for i in range(x.shape[1]):
+        items.append(Reshape((1,))(x[0][i:i+1]))
+
+    rn_inputs = []
+    for object_pair in list(itertools.combinations(items, 2)):
+        rn_input = K.concatenate([object_pair[0], object_pair[1], embedded_question], axis=1)
+        rn_inputs.append(rn_input)
+
+    return K.concatenate(rn_inputs, axis=0)
+
+
+def wise_sum(x):
+    return K.sum(x, axis=0)
 
 
 class RN(Networks):
@@ -72,85 +84,31 @@ class RN(Networks):
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')
 
-        response = self.__rn__(story, question)
-        response = Dense(self._vocab_size, activation='softmax')(response)
-
-        self._model = Model(inputs=[story, question], outputs=response)
-        self._model.compile(optimizer=Adam(lr=2e-4), loss='categorical_crossentropy', metrics=['accuracy'])
-
-    def __rn__(self, story, question):
-
         embedded_story = Embedding(self._vocab_size, output_dim=self.__embed_dimension)(story)
         embedded_question = Embedding(self._vocab_size, output_dim=self.__embed_dimension)(question)
 
         embedded_story = LSTM(self.__story_hidden, dropout=0.2, recurrent_dropout=0.2)(embedded_story)
         embedded_question = LSTM(self.__question_hidden, dropout=0.2, recurrent_dropout=0.2)(embedded_question)
 
-        rn_input = self.convert_to_RN_input(embedded_story, embedded_question)
-        # f_input = self.g_theta(rn_input, reuse=False, phase=self.is_training)
-        # pred = self.f_phi(f_input, reuse=False, phase=self.is_training)
-
-        return embedded_story
-
-    def convert_to_RN_input(self, embedded_c, embedded_q):
-        """
-        Args
-            embedded_c: output of contextLSTM, 20 length list of embedded sentences
-            embedded_q: output of questionLSTM, embedded question
-        Returns
-            RN_input: input for RN g_theta, shape = [batch_size*190, (52+52+32)]
-            considered batch_size and all combinations
-        """
+        # TODO: How to deal with label?
         # 20 combination 2 --> total 190 object pairs
-        object_pairs = list(itertools.combinations(embedded_c, 2))
-        # concatenate with question
-        RN_inputs = []
-        for object_pair in object_pairs:
-            RN_inputs.append(tf.concat([object_pair[0], object_pair[1], embedded_q], axis=1))
+        rn_input = Lambda(lambda x: combination(x, embedded_question))(embedded_story)
 
-        return tf.concat(RN_inputs, axis=0)
+        # add the match matrix with the second input vector sequence
+        g_response = Dense(256, activation='relu')(rn_input)
+        g_response = Dense(256, activation='relu')(g_response)
+        g_response = Dense(256, activation='relu')(g_response)
+        g_response = Dense(256, activation='relu')(g_response)
+        g_response = Reshape((1, 256))(g_response)
 
-    def batch_norm_relu(self, inputs, output_shape, phase=True, scope=None, activation=True):
-        with tf.variable_scope(scope):
-            h1 = fully_connected(inputs, output_shape, activation_fn=None, scope="dense")
-            h2 = batch_norm(h1, decay=0.95, center=True, scale=True, is_training=phase, scope='bn', updates_collections=None)
+        f_response = Lambda(wise_sum)(g_response)
+        f_response = Dense(256, activation='relu')(f_response)
+        f_response = Dense(512, activation='relu')(f_response)
 
-            if activation:
-                out = tf.nn.relu(h2, 'relu')
-            else:
-                out = h2
-            return out
+        response = Dense(self._vocab_size, activation='softmax')(f_response)
 
-    def g_theta(self, RN_input, scope='g_theta', reuse=True, phase=True):
-        """
-        Args
-            RN_input: [o_i, o_j, q], shape = [batch_size*190, 136]
-        Returns
-            g_output: shape = [190, batch_size, 256]
-        """
-        g_units = [256, 256, 256, 256]
-        with tf.variable_scope(scope, reuse=reuse) as scope:
-            g_1 = self.batch_norm_relu(RN_input, g_units[0], scope='g_1', phase=phase)
-            g_2 = self.batch_norm_relu(g_1, g_units[1], scope='g_2', phase=phase)
-            g_3 = self.batch_norm_relu(g_2, g_units[2], scope='g_3', phase=phase)
-            g_4 = self.batch_norm_relu(g_3, g_units[3], scope='g_4', phase=phase)
-        g_output = tf.reshape(g_4, shape=[-1, self.batch_size, g_units[3]])
-        return g_output
-
-    def f_phi(self, g, scope="f_phi", reuse=True, phase=True):
-        """
-        Args
-            g: g_theta result, shape = [190, batch_size, 256]
-        Returns
-            f_output: shape = [batch_size, 159]
-        """
-        f_input = tf.reduce_sum(g, axis=0)
-        f_units = [256, 512, self.answer_vocab_size]
-        with tf.variable_scope(scope, reuse=reuse) as scope:
-            f_1 = self.batch_norm_relu(f_input, f_units[0], scope="f_1", phase=phase)
-            f_2 = self.batch_norm_relu(f_1, f_units[1], scope="f_2", phase=phase)
-            f_3 = self.batch_norm_relu(f_2, f_units[2], scope="f_3", phase=phase)
-        return f_3
+        self._model = Model(inputs=[story, question], outputs=response)
+        self._model.compile(optimizer=Adam(lr=2e-4),  loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 class RNAgent(BaseKerasAgent):

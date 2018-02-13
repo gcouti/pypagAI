@@ -1,6 +1,8 @@
 import copy
 import numpy as np
 
+from keras import backend as K
+from keras.preprocessing.sequence import pad_sequences
 from parlai.core.agents import Agent
 from parlai.core.dict import DictionaryAgent
 
@@ -113,6 +115,8 @@ class BaseNeuralNetworkAgent(Agent):
         # produce predictions either way, but use the targets if available
         predictions, cands = self.predict(xs, qs, ys, cands)
 
+        # print(predictions)
+
         for i in range(len(predictions)):
             # map the predictions back to non-empty examples in the batch
             # we join with spaces since we produce tokens one at a time
@@ -127,17 +131,16 @@ class BaseNeuralNetworkAgent(Agent):
         return batch_reply
 
     def _transform_input_(self, tokenized, max_len=None):
-
         if not max_len:
             max_len = max([len(x) for x in tokenized])
+        return pad_sequences(tokenized, maxlen=max_len)
 
-        result = []
-        for entry in tokenized:
-            new_x = [0] * max_len
-            new_x[:len(entry)] = entry[:max_len]
-            result.append(new_x)
-
-        return np.array(result)
+        # result = []
+        # for entry in tokenized:
+        #     new_x = [0] * max_len
+        #     new_x[:len(entry)] = entry[:max_len]
+        #     result.append(new_x)
+        # np.array(result)
 
     def batchify(self, observations):
         """
@@ -152,28 +155,32 @@ class BaseNeuralNetworkAgent(Agent):
         # tokenize the text
         parsed = [self._parse('\n'.join(ex['text'].split('\n')[:-1])) for ex in exs]
         xs = self._transform_input_(parsed, max_len=self._story_length)
-        xs = xs / float(len(self._dictionary))
 
         if self._categorical:
             xs = keras.utils.np_utils.to_categorical(xs, num_classes=len(self._dictionary))
+        else:
+            # xs = xs / float(len(self._dictionary))
+            pass
 
         parsed = [self._parse('\n'.join(ex['text'].split('\n')[-1:])) for ex in exs]
         qs = self._transform_input_(parsed, max_len=self._query_length)
-        qs = qs / float(len(self._dictionary))
 
         if self._categorical:
             qs = keras.utils.np_utils.to_categorical(qs, num_classes=len(self._dictionary))
+        else:
+            # qs = qs / float(len(self._dictionary))
+            pass
 
         ys = None
         cands = None
 
         if 'labels' in exs[0]:
-            parsed = [self._parse(ex['labels']) for ex in exs]
-            ys = keras.utils.np_utils.to_categorical(self._transform_input_(parsed), num_classes=len(self._dictionary))
+            ys = [self._parse(ex['labels'])[0] for ex in exs]
+            # ys = keras.utils.np_utils.to_categorical(self._transform_input_(parsed), num_classes=len(self._dictionary))
 
         if 'label_candidates' in exs[0]:
-            parsed = [self._parse(ex['label_candidates']) for ex in exs]
-            cands = self._transform_input_(parsed)
+            cands = [self._parse(ex['label_candidates']) for ex in exs]
+            # cands = self._transform_input_(parsed)
 
         return xs, qs, ys, cands,
 
@@ -188,7 +195,7 @@ class Networks:
 
     def __init__(self):
         self._model = None
-        self._epochs = 10
+        self._epochs = 200
         self._verbose = False
 
     def train(self, story, question, answer):
@@ -201,6 +208,7 @@ class Networks:
         """
         nn_input = self._network_input_(story, question)
         self._model.fit(nn_input, answer, verbose=self._verbose, epochs=self._epochs, callbacks=[callback])
+        # self._model.train_on_batch(nn_input, answer)
 
     def predict(self, story, question):
 
@@ -229,8 +237,8 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
 
         agent = parser.add_argument_group('Keras Arguments')
         agent.add_argument('-kv', '--keras-verbose', type=bool, default=False, help='Keras verbose outputs')
-        agent.add_argument('-kbs', '--keras-batch-size', type=int, default=1024, help='Batch size of keras')
-        agent.add_argument('-ke', '--keras-epochs', type=int, default=1000, help='Keras number of epochs')
+        agent.add_argument('-kbs', '--keras-batch-size', type=int, default=32, help='Batch size of keras')
+        agent.add_argument('-ke', '--keras-epochs', type=int, default=200, help='Keras number of epochs')
         agent.add_argument('-kefd', '--exclude-from-dict', type=int, default=5,
                            help='Number of responses excluded from dictionary. This option get no effect when option '
                                 'use_candidates is True')
@@ -240,7 +248,8 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
         self._model = None
         self._verbose = opt['keras_verbose']
         self._epoch = opt['keras_epochs']
-        self._batch_size = opt['keras_batch_size']
+        # self._batch_size = opt['keras_batch_size']
+        self._batch_size = 2
         self._exclude_from_dict = opt['exclude_from_dict']
 
     def save(self, path=None):
