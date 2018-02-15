@@ -4,8 +4,8 @@ from keras import Model, Input, Sequential
 from keras.layers import Dense, add, concatenate, LSTM, Reshape, Embedding
 from keras.optimizers import Adam
 
-from agents.agent_lstm import LSTMAgent
-from agents.base import Networks, BaseKerasAgent
+from pypagai.agents.agent_lstm import LSTMAgent
+from pypagai.agents.base import Networks, BaseKerasAgent
 
 
 class EmbedLSTM(Networks):
@@ -13,11 +13,9 @@ class EmbedLSTM(Networks):
     Use a simple lstm neural network
     """
 
-    def __init__(self, opt, vocab_size, story_maxlen, query_maxlen):
+    def __init__(self, vocab_size, story_maxlen, query_maxlen, hidden=32):
 
         super().__init__()
-
-        hidden = opt['hidden']
 
         self._vocab_size = vocab_size
         self._story_maxlen = story_maxlen
@@ -33,7 +31,7 @@ class EmbedLSTM(Networks):
         response = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[story, question], outputs=response)
-        self._model.compile(optimizer=Adam(lr=2e-4), loss='categorical_crossentropy', metrics=['accuracy'])
+        self._model.compile(optimizer=Adam(lr=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
 class EmbedLSTMAgent(LSTMAgent):

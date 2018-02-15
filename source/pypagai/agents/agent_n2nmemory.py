@@ -1,7 +1,7 @@
 from keras import Input, Model, Sequential
 from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense
 
-from agents.base import Networks, BaseKerasAgent, BaseNeuralNetworkAgent
+from pypagai.agents.base import Networks, BaseKerasAgent, BaseNeuralNetworkAgent
 
 
 class N2NMemory(Networks):

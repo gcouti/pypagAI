@@ -12,7 +12,7 @@ callback = keras.callbacks.TensorBoard(log_dir='./log', histogram_freq=0, write_
 
 class BaseNeuralNetworkAgent(Agent):
     """
-    Super class which can be used with all types of neural network agents.
+    Super class which can be used with all types of neural network pypagAI.agents.
     """
 
     @staticmethod
@@ -196,19 +196,18 @@ class Networks:
     def __init__(self):
         self._model = None
         self._epochs = 200
-        self._verbose = False
+        self._verbose = True
 
-    def train(self, story, question, answer):
+    def train(self, data, valid=None):
         """
         Train models with neural network inputs "story" and "question" with the expected result "answer"
 
         :param story: Story and context
         :param question: Query made to find the answer
-        :param answer: Expected answer
         """
-        nn_input = self._network_input_(story, question)
-        self._model.fit(nn_input, answer, verbose=self._verbose, epochs=self._epochs, callbacks=[callback])
-        # self._model.train_on_batch(nn_input, answer)
+        nn_input = self._network_input_(data.context, data.query)
+        for epoch in range(self._epochs):
+            self._model.fit(nn_input, data.answer, verbose=self._verbose, callbacks=[callback], validation_data=([valid.context, valid.query], valid.answer))
 
     def predict(self, story, question):
 
@@ -228,7 +227,7 @@ class Networks:
 
 class BaseKerasAgent(BaseNeuralNetworkAgent):
     """
-    Super class of Keras Agents. This class have all keras agents common methods
+    Super class of Keras Agents. This class have all keras pypagAI.agents common methods
     """
 
     @staticmethod
@@ -254,7 +253,7 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
 
     def save(self, path=None):
         """
-        Save model into a file
+        Persist model on disk
 
         :param path: model file location, if it is none it will load the
         """
@@ -270,12 +269,13 @@ class BaseKerasAgent(BaseNeuralNetworkAgent):
     def copy(self):
         return copy.deepcopy(self)
 
-    def predict(self, xs, qs, ys=None, cands=None):
+    def predict(self, xs, qs, ys=None, candidates=None):
+        # TODO: candidates are not implemented yet
+
         if ys is not None:
-            self._model.train(xs, qs, ys)
             predictions = self._model.predict(xs, qs)
+            self._model.train(xs, qs, ys)
         else:
             predictions = self._model.predict(xs, qs)
 
-        # TODO: Fazer a implementação para utilizar os candidatos
-        return predictions, cands
+        return predictions, candidates

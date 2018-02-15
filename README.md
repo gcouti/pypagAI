@@ -6,7 +6,7 @@ Experiments with Neural Networks to solve question answering QA problem.
 
 Processing and reasoning information is the main characteristic observed in the behavior of intelligent species. However, it is a hard task to transpose this to computer logic, and it has been proven difficult for machine learning algorithms to learn from it. Regardless, some improvement has been made with deep learning models, which encourages us to continue exploring such problems, although a lot of work is required to achieve satisfactory results. This work attempts to explore a set of neural networks which showed good results reasoning problems. 
 
-Creating a way for machines to reason and understand context is a challenge for Computer Science. The solution for this     problem has a crucial importance in order to build smart conversational agents and could be a large step to singularity. As much as we already have agents that are capable to dialog, they have not been sufficiently smart to pass the Turing Test.
+Creating a way for machines to reason and understand context is a challenge for Computer Science. The solution for this     problem has a crucial importance in order to build smart conversational pypagAI.agents and could be a large step to singularity. As much as we already have pypagAI.agents that are capable to dialog, they have not been sufficiently smart to pass the Turing Test.
 
 ## Using this code
 

@@ -5,7 +5,7 @@ from keras.layers import Dense, add, concatenate, LSTM, Reshape, Embedding, K
 from keras.optimizers import Adam
 from keras.utils import to_categorical
 
-from agents.base import Networks, BaseKerasAgent
+from pypagai.agents.base import Networks, BaseKerasAgent
 
 
 class SimpleLSTM(Networks):
@@ -13,11 +13,9 @@ class SimpleLSTM(Networks):
     Use a simple lstm neural network
     """
 
-    def __init__(self, opt, vocab_size, story_maxlen, query_maxlen):
+    def __init__(self, vocab_size, story_maxlen, query_maxlen, hidden=128):
 
         super().__init__()
-
-        hidden = opt['hidden']
 
         self._vocab_size = vocab_size
         self._story_maxlen = story_maxlen
