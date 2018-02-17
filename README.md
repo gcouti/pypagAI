@@ -8,9 +8,9 @@ Processing and reasoning information is the main characteristic observed in the 
 
 Creating a way for machines to reason and understand context is a challenge for Computer Science. The solution for this     problem has a crucial importance in order to build smart conversational pypagAI.agents and could be a large step to singularity. As much as we already have pypagAI.agents that are capable to dialog, they have not been sufficiently smart to pass the Turing Test.
 
-## Using this code
+## Get start
 
-This code use a ParlAI framework (https://github.com/facebookresearch/ParlAI), and some libraires are required to run. To facilitate the setup process you just can run the script file:
+First of all, you must run setup.sh to create enviroment varibles
 
 ```
 setup.sh
