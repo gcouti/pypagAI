@@ -25,19 +25,11 @@ from pypagai.experiments.flow import ExperimentFlow
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
 
-
-def setup_args():
-    parser = PypagaiParser()
-    # args = parser.add_argument_group('Arguments')
-
-    return parser
-
-
 if __name__ == '__main__':
     LOG.info("[START] Experiments")
 
     LOG.debug("Reading params")
-    args = setup_args()
+    args = PypagaiParser()
 
     LOG.debug("Init flow")
     flow = ExperimentFlow(args)
