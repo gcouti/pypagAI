@@ -16,7 +16,6 @@ class ProcessedData:
     """
 
     """
-
     context = None
     query = None
     answer = None
@@ -50,6 +49,23 @@ class RemoteDataReader(DataReader):
         return (pad_sequences(inputs, maxlen=story_maxlen),
                 pad_sequences(queries, maxlen=query_maxlen),
                 np.array(answers))
+
+
+    # for story, query, answer in data:
+        #     x = np.zeros((len(story), fact_maxlen),dtype='int32')
+        #     for k,facts in enumerate(story):
+        #         if not enable_time:
+        #             x[k][-len(facts):] = np.array([word_idx[w] for w in facts])[:fact_maxlen]
+        #         else:
+        #             x[k][-len(facts)-1:-1] = np.array([word_idx[w] for w in facts])[:facts_maxlen-1]
+        #             x[k][-1] = len(word_idx) + len(story) - k
+        #     xq = [word_idx[w] for w in query]
+        #     y = np.zeros(len(word_idx) + 1) if not enable_time else np.zeros(len(word_idx) + 1 + story_maxlen)
+        #     y[word_idx[answer]] = 1
+        #     X.append(x)
+        #     Xq.append(xq)
+        #     Y.append(y)
+        # return pad_sequences(X, maxlen=story_maxlen), pad_sequences(Xq, maxlen=query_maxlen), np.array(Y)
 
     def read(self):
         try:
