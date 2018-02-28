@@ -3,36 +3,16 @@ from __future__ import print_function
 import keras.backend as K
 import theano.tensor as T
 from keras.callbacks import LearningRateScheduler
-from keras.layers import Input, merge, Embedding, LSTM
+from keras.layers import Input, merge, Embedding, LSTM, Reshape, concatenate, add
 from keras.layers.core import Dense, Dropout, Lambda, Activation
 from keras.metrics import categorical_accuracy
 from keras.models import Model
 from keras.optimizers import SGD, Adam
 
-from pypagai.models.base import TensorFlowModel
+from pypagai.models.base import TensorFlowModel, KerasModel
 
 
-# class SequenceEmbedding(Embedding):
-#     def __init__(self, input_dim, output_dim, position_encoding=False, **kwargs):
-#         self.position_encoding = position_encoding
-#         self.zeros_vector = T.zeros(output_dim, dtype='float32').reshape((1, output_dim))
-#         self.dropout = 0
-#         super(SequenceEmbedding, self).__init__(input_dim, output_dim, **kwargs)
-#
-#     def call(self, x, mask=None):
-#         if 0. < self.dropout < 1.:
-#             retain_p = 1. - self.dropout
-#             B = K.random_binomial((self.input_dim,), p=retain_p) * (1. / retain_p)
-#             B = K.expand_dims(B)
-#             W = K.in_train_phase(self.get_weights() * B, self.get_weights())
-#         else:
-#             W = self.W
-#         W_ = T.concatenate([self.zeros_vector, W], axis=0)
-#         out = K.gather(W_, x)
-#         return out
-
-
-class RN(TensorFlowModel):
+class RN(KerasModel):
     ALIAS = "rn"
 
     """
@@ -76,6 +56,7 @@ class RN(TensorFlowModel):
 
         EMBED_HIDDEN_SIZE = 20
         MLP_unit = 64
+        LSTM_UNITS = 32
 
         args = arg_parser.parse()
 
@@ -99,92 +80,43 @@ class RN(TensorFlowModel):
         self.question_vocab_size = self._vocab_size + 1  # consider masking
         self.answer_vocab_size = self._vocab_size
 
-        story = Input((self._story_maxlen, self._facts_maxlen,), name='story')
+        story = Input((self._story_maxlen, self._sentences_maxlen,), name='story')
         question = Input((self._query_maxlen,), name='question')
 
-        embedded = Embedding(EMBED_HIDDEN_SIZE, 200)(question)
-        question_encoder = LSTM(EMBED_HIDDEN_SIZE, dropout=0.2, recurrent_dropout=0.2)(embedded)
-        question_encoder = Lambda(lambda x: K.sum(x, axis=1),
-                                 output_shape=lambda shape: (shape[0],) + shape[1:])(question_encoder)
+        embedded = Embedding(self._vocab_size, 200)(story)
+        embedded = Reshape((self._story_maxlen, 200 * self._sentences_maxlen,))(embedded)
+        story_encoder = LSTM(32, return_sequences=True)(embedded)
 
-        embedded = Embedding(EMBED_HIDDEN_SIZE, 200)(question)
-        story_encoder = LSTM(EMBED_HIDDEN_SIZE, dropout=0.2, recurrent_dropout=0.2, return_sequences=True)(embedded)
-        story_encoder = Lambda(lambda x: K.sum(x, axis=2),
-                               output_shape=(self._story_maxlen, EMBED_HIDDEN_SIZE,))(story_encoder)
+        embedded = Embedding(self._vocab_size, 200)(question)
+        question_encoder = LSTM(32)(embedded)
 
         objects = []
         for k in range(self._story_maxlen):
-            fact_object = Lambda(lambda x: x[:, k, :], output_shape=(20,))(story_encoder)
+            fact_object = Lambda(lambda x: x[:, k, :])(story_encoder)
             objects.append(fact_object)
 
         relations = []
         for fact_object_1 in objects:
             for fact_object_2 in objects:
-                relations.append(merge([fact_object_1, fact_object_2, question_encoder], mode='concat',
-                                       output_shape=(None, EMBED_HIDDEN_SIZE * 3,)))
+                r = concatenate([fact_object_1, fact_object_2, question_encoder])
+                response = Dense(256, activation='relu')(r)
+                response = Dropout(0.5)(response)
+                response = Dense(256, activation='relu')(response)
+                response = Dropout(0.5)(response)
+                response = Dense(256, activation='relu')(response)
+                response = Dropout(0.5)(response)
+                response = Dense(256, activation='relu')(response)
+                response = Dropout(0.5)(response)
 
-        from keras.layers.normalization import BatchNormalization
+                relations.append(response)
 
-        MLP_unit = 64
+        combined_relation = add(relations)
 
-        def stack_layer(layers):
-            def f(x):
-                for k in range(len(layers)):
-                    x = layers[k](x)
-                return x
-            return f
-
-
-        def get_MLP(n):
-            r = []
-            for k in range(n):
-                s = stack_layer([
-                    Dense(MLP_unit, input_shape=(EMBED_HIDDEN_SIZE * 3,)),
-                    BatchNormalization(),
-                    Activation('relu')
-                ])
-                r.append(s)
-            return stack_layer(r)
-
-        g_MLP = get_MLP(3)
-        mid_relations = []
-        for r in relations:
-            mid_relations.append(Dense(MLP_unit, input_shape=(EMBED_HIDDEN_SIZE,))(r))
-        combined_relation = merge(mid_relations, mode='sum')
-
-        def bn_dense(x):
-            y = Dense(MLP_unit)(x)
-            y = BatchNormalization()(y)
-            y = Activation('relu')(y)
-            y = Dropout(0.5)(y)
-            return y
-
-        #rn = bn_dense(combined_relation)
-        response = Dense(self._vocab_size, init='uniform', activation='sigmoid')(combined_relation)
-
-        model = Model(input=[story, question], output=[response])
-
-        #theano.printing.pydotprint(response, outfile="model.png", var_with_name_simple=True)
-        #plot(model, to_file='model.png')
-
-        def scheduler(epoch):
-            if (epoch + 1) % 25 == 0:
-                lr_val = model.optimizer.lr.get_value()
-                model.optimizer.lr.set_value(lr_val*0.5)
-            return float(model.optimizer.lr.get_value())
-
-        sgd = SGD(lr=0.01, clipnorm=40.)
-        adam = Adam(clipnorm = 40.)
-
-        print('Compiling model...')
-        model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=[categorical_accuracy])
-        print('Compilation done...')
-
-        lr_schedule = LearningRateScheduler(scheduler)
-
-        # label =
-
+        response = Dense(256, activation='relu')(combined_relation)
+        response = Dropout(0.5)(response)
+        response = Dense(512, activation='relu')(response)
+        response = Dropout(0.5)(response)
         response = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[story, question], outputs=response)
-        self._model.compile(optimizer=Adam(clipnorm=40.), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        self._model.compile(optimizer=Adam(clipnorm=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])

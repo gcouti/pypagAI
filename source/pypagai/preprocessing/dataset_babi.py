@@ -20,7 +20,10 @@ class BaBIDataset(RemoteDataReader):
         """
         data = self._parser_.parse_stories(f.readlines(), only_supporting=only_supporting)
         flatten = lambda data: reduce(lambda x, y: x + y, data)
-        data = [(flatten(story), q, answer) for story, q, answer in data if not max_length or len(flatten(story)) < max_length]
+
+        if not self._args_.strip_sentences:
+            data = [(flatten(story), q, answer) for story, q, answer in data if not max_length or len(flatten(story)) < max_length]
+
         return data
 
     def _download_(self):

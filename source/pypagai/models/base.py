@@ -20,7 +20,7 @@ class BaseModel:
         self._vocab_size = args.vocab_size
         self._story_maxlen = args.story_maxlen
         self._query_maxlen = args.query_maxlen
-        # self._facts_maxlen = args.facts_maxlen
+        self._sentences_maxlen = args.sentences_maxlen
 
     def train(self, data, valid=None):
         raise Exception("Not implemented")
@@ -71,7 +71,7 @@ class BaseNeuralNetworkModel(BaseModel):
 
         :return: Expected format from keras models
         """
-        return [data.context, data.query]
+        return [np.array(data.context), data.query]
 
 
 class KerasModel(BaseNeuralNetworkModel):
@@ -81,8 +81,9 @@ class KerasModel(BaseNeuralNetworkModel):
         Train models with neural network inputs "story" and "question" with the expected result "answer"
         """
         nn_input = self._network_input_(data)
+        nn_valid = self._network_input_(valid)
         for epoch in range(self._epochs):
-            self._model.fit(nn_input, data.answer, verbose=self._verbose, callbacks=[callback], validation_data=([valid.context, valid.query], valid.answer))
+            self._model.fit(nn_input, data.answer, verbose=self._verbose, callbacks=[callback], validation_data=(nn_valid, valid.answer))
 
     def predict(self, data):
         nn_input = self._network_input_(data)

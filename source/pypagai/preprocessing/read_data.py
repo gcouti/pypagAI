@@ -4,6 +4,7 @@ import logging
 
 import numpy as np
 from keras.preprocessing.sequence import pad_sequences
+from nltk import flatten
 
 from pypagai import settings
 from pypagai.preprocessing.parser import SimpleParser
@@ -27,9 +28,11 @@ class DataReader:
 
         self._args_parser_ = args_parser
         args = self._args_parser_.add_argument_group('DataReader')
-        args.add_argument('--vocab_size', type=int, default=None)
-        args.add_argument('--story_maxlen', type=int, default=None)
-        args.add_argument('--query_maxlen', type=int, default=None)
+        args.add_argument('--vocab-size', type=int, default=None)
+        args.add_argument('--story-maxlen', type=int, default=None)
+        args.add_argument('--query-maxlen', type=int, default=None)
+        args.add_argument('--sentences-maxlen', type=int, default=None)
+        args.add_argument('--strip-sentences', type=bool, default=True)
 
         self._args_ = args_parser.parse()
         self._parser_ = SimpleParser()
@@ -40,10 +43,20 @@ class RemoteDataReader(DataReader):
     def _download_(self):
         raise Exception("It should be implemented by children classes")
 
-    def __vectorize_stories__(self, word_idx, data, story_maxlen, query_maxlen):
+    def __vectorize_stories__(self, word_idx, data, story_maxlen, query_maxlen, sentences_maxlen=None):
         inputs, queries, answers = [], [], []
         for story, query, answer in data:
-            inputs.append([word_idx[w] for w in story])
+            if sentences_maxlen:
+                facts = []
+                for sentence in story:
+                    s = []
+                    for w in sentence:
+                        s.append(word_idx[w])
+                    facts.append(s)
+                inputs.append(pad_sequences(facts, maxlen=sentences_maxlen))
+            else:
+                inputs.append([word_idx[w] for w in story])
+
             queries.append([word_idx[w] for w in query])
             answers.append(word_idx[answer])
         return (pad_sequences(inputs, maxlen=story_maxlen),
@@ -76,7 +89,7 @@ class RemoteDataReader(DataReader):
 
         vocab = set()
         for story, q, answer in train_stories + test_stories:
-            vocab |= set(story + q + [answer])
+            vocab |= set(flatten(story) + q + [answer])
         vocab = sorted(vocab)
 
         # Reserve 0 for masking via pad_sequences
@@ -95,13 +108,19 @@ class RemoteDataReader(DataReader):
         else:
             query_maxlen = self._args_.query_maxlen
 
+        if not self._args_.strip_sentences:
+            sentences_maxlen = None
+        else:
+            sentences_maxlen = max(map(len, (x for h, _, _ in train_stories + test_stories for x in h)))
+
         self._args_.vocab_size = vocab_size
         self._args_.story_maxlen = story_maxlen
         self._args_.query_maxlen = query_maxlen
+        self._args_.sentences_maxlen = sentences_maxlen
 
         word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
-        inputs_train, queries_train, answers_train = self.__vectorize_stories__(word_idx, train_stories, story_maxlen, query_maxlen)
-        inputs_test, queries_test, answers_test = self.__vectorize_stories__(word_idx, test_stories, story_maxlen, query_maxlen)
+        inputs_train, queries_train, answers_train = self.__vectorize_stories__(word_idx, train_stories, story_maxlen, query_maxlen, sentences_maxlen)
+        inputs_test, queries_test, answers_test = self.__vectorize_stories__(word_idx, test_stories, story_maxlen, query_maxlen, sentences_maxlen)
 
         train_data = ProcessedData()
         train_data.context = inputs_train
