@@ -30,3 +30,7 @@ setup.sh
 |Tasks  | LSTM | IR  |
 | ---   |  :-: | :-: |
 |Task01 |  0.0 | 0.0 |
+
+.. |pypi| image:: https://img.shields.io/pypi/v/sacred.svg
+    :target: https://pypi.python.org/pypi/sacred
+    :alt: Current PyPi Version
