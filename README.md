@@ -1,3 +1,7 @@
+
+|pypi| |py_versions| |license| |doi| |unix_build| |windows_build| |coverage| |code_quality| |codacy|
+
+
 # Question Anwsering Problem
 
 Experiments with Neural Networks to solve question answering QA problem.
