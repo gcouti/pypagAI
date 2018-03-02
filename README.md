@@ -1,5 +1,7 @@
 
-|pypi| |py_versions| |license| |doi| |unix_build| |windows_build| |coverage| |code_quality| |codacy|
+|pypi| 
+
+
 
 
 # Question Anwsering Problem
