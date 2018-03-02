@@ -5,3 +5,5 @@ tensorflow==1.4.0
 tensorflow-tensorboard==0.4.0rc3
 h5py==2.7.1
 spacy==2.0.3
+nltk
+scikit-learn
