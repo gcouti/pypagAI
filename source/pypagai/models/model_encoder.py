@@ -8,10 +8,8 @@ from pypagai.models.base import KerasModel
 
 class EncoderModel(KerasModel):
 
-    ALIAS = "encoder"
-
-    def __init__(self, arg_parser, shared=None):
-        super().__init__(arg_parser)
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
         # args = arg_parser.add_argument_group(__name__)
         # args = arg_parser.parse()
 

@@ -7,7 +7,6 @@ from keras.preprocessing.sequence import pad_sequences
 from nltk import flatten
 
 from pypagai import settings
-from pypagai.preprocessing.parser import SimpleParser
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
@@ -24,18 +23,10 @@ class ProcessedData:
 
 class DataReader:
 
-    def __init__(self, args_parser):
-
-        self._args_parser_ = args_parser
-        args = self._args_parser_.add_argument_group('DataReader')
-        args.add_argument('--vocab-size', type=int, default=None)
-        args.add_argument('--story-maxlen', type=int, default=None)
-        args.add_argument('--query-maxlen', type=int, default=None)
-        args.add_argument('--sentences-maxlen', type=int, default=None)
-        args.add_argument('--strip-sentences', type=bool, default=True)
-
-        self._args_ = args_parser.parse()
-        self._parser_ = SimpleParser()
+    def __init__(self, reader_cfg, model_cfg):
+        self._cfg_ = reader_cfg
+        self._model_cfg_ = model_cfg
+        self._parser_ = self._cfg_['parser']()
 
 
 class RemoteDataReader(DataReader):
@@ -43,8 +34,9 @@ class RemoteDataReader(DataReader):
     def _download_(self):
         raise Exception("It should be implemented by children classes")
 
-    def __vectorize_stories__(self, word_idx, data, story_maxlen, query_maxlen, sentences_maxlen=None):
-        inputs, queries, answers = [], [], []
+    @staticmethod
+    def __vectorize_stories__(word_idx, data, story_maxlen, query_maxlen, sentences_maxlen=None):
+        inputs, queries, answers, labels = [], [], [], []
         for story, query, answer in data:
             if sentences_maxlen:
                 facts = []
@@ -53,38 +45,27 @@ class RemoteDataReader(DataReader):
                     for w in sentence:
                         s.append(word_idx[w])
                     facts.append(s)
+                labels.append(np.arange(len(facts)))
                 inputs.append(pad_sequences(facts, maxlen=sentences_maxlen))
             else:
                 inputs.append([word_idx[w] for w in story])
 
             queries.append([word_idx[w] for w in query])
             answers.append(word_idx[answer])
-        return (pad_sequences(inputs, maxlen=story_maxlen),
-                pad_sequences(queries, maxlen=query_maxlen),
-                np.array(answers))
 
+        dt = ProcessedData()
+        dt.context = pad_sequences(inputs, maxlen=story_maxlen)
+        dt.query = pad_sequences(queries, maxlen=query_maxlen)
+        dt.answer = np.array(answers)
+        dt.labels = pad_sequences(labels, maxlen=sentences_maxlen) if sentences_maxlen else []
 
-    # for story, query, answer in data:
-        #     x = np.zeros((len(story), fact_maxlen),dtype='int32')
-        #     for k,facts in enumerate(story):
-        #         if not enable_time:
-        #             x[k][-len(facts):] = np.array([word_idx[w] for w in facts])[:fact_maxlen]
-        #         else:
-        #             x[k][-len(facts)-1:-1] = np.array([word_idx[w] for w in facts])[:facts_maxlen-1]
-        #             x[k][-1] = len(word_idx) + len(story) - k
-        #     xq = [word_idx[w] for w in query]
-        #     y = np.zeros(len(word_idx) + 1) if not enable_time else np.zeros(len(word_idx) + 1 + story_maxlen)
-        #     y[word_idx[answer]] = 1
-        #     X.append(x)
-        #     Xq.append(xq)
-        #     Y.append(y)
-        # return pad_sequences(X, maxlen=story_maxlen), pad_sequences(Xq, maxlen=query_maxlen), np.array(Y)
+        return dt
 
     def read(self):
         try:
-            # TODO: check if download
             train_stories, test_stories = self._download_()
         except Exception as e:
+
             raise Exception('Error downloading dataset, please download it manually', e)
 
         vocab = set()
@@ -93,43 +74,33 @@ class RemoteDataReader(DataReader):
         vocab = sorted(vocab)
 
         # Reserve 0 for masking via pad_sequences
-        if not self._args_.vocab_size:
+        if 'vocab_size' not in self._cfg_:
             vocab_size = len(vocab) + 1
         else:
-            vocab_size = self._args_.vocab_size
+            vocab_size = self._cfg_['vocab_size']
 
-        if not self._args_.story_maxlen:
+        if 'story_maxlen' not in self._cfg_:
             story_maxlen = max(map(len, (x for x, _, _ in train_stories + test_stories)))
         else:
-            story_maxlen = self._args_.story_maxlen
+            story_maxlen = self._cfg_['story_maxlen']
 
-        if not self._args_.query_maxlen:
+        if 'query_maxlen' not in self._cfg_:
             query_maxlen = max(map(len, (x for _, x, _ in train_stories + test_stories)))
         else:
-            query_maxlen = self._args_.query_maxlen
+            query_maxlen = self._cfg_['query_maxlen']
 
-        if not self._args_.strip_sentences:
+        if 'strip_sentences' not in self._cfg_ or not self._cfg_['strip_sentences']:
             sentences_maxlen = None
         else:
             sentences_maxlen = max(map(len, (x for h, _, _ in train_stories + test_stories for x in h)))
 
-        self._args_.vocab_size = vocab_size
-        self._args_.story_maxlen = story_maxlen
-        self._args_.query_maxlen = query_maxlen
-        self._args_.sentences_maxlen = sentences_maxlen
+        self._model_cfg_['vocab_size'] = vocab_size
+        self._model_cfg_['story_maxlen'] = story_maxlen
+        self._model_cfg_['query_maxlen'] = query_maxlen
+        self._model_cfg_['sentences_maxlen'] = sentences_maxlen
 
         word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
-        inputs_train, queries_train, answers_train = self.__vectorize_stories__(word_idx, train_stories, story_maxlen, query_maxlen, sentences_maxlen)
-        inputs_test, queries_test, answers_test = self.__vectorize_stories__(word_idx, test_stories, story_maxlen, query_maxlen, sentences_maxlen)
+        train_data = self.__vectorize_stories__(word_idx, train_stories, story_maxlen, query_maxlen, sentences_maxlen)
+        test_data = self.__vectorize_stories__(word_idx, test_stories, story_maxlen, query_maxlen, sentences_maxlen)
 
-        train_data = ProcessedData()
-        train_data.context = inputs_train
-        train_data.query = queries_train
-        train_data.answer = answers_train
-
-        validation_data = ProcessedData()
-        validation_data.context = inputs_test
-        validation_data.query = queries_test
-        validation_data.answer = answers_test
-
-        return train_data, validation_data
+        return train_data, test_data

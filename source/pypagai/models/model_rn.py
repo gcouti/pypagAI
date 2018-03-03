@@ -3,7 +3,7 @@ from __future__ import print_function
 import keras.backend as K
 import theano.tensor as T
 from keras.callbacks import LearningRateScheduler
-from keras.layers import Input, merge, Embedding, LSTM, Reshape, concatenate, add
+from keras.layers import Input, merge, Embedding, LSTM, Reshape, concatenate, add, regularizers, Bidirectional
 from keras.layers.core import Dense, Dropout, Lambda, Activation
 from keras.metrics import categorical_accuracy
 from keras.models import Model
@@ -41,11 +41,14 @@ class RN(KerasModel):
     rate of 2e-4 .
 
     https://github.com/jgpavez/qa-babi/blob/master/babi_rn.py
+    https://github.com/juung/Relation-Network/blob/master/model.py
+    https://github.com/gitlimlab/Relation-Network-Tensorflow/blob/master/model_rn.py
+    https://github.com/kimhc6028/relational-networks/blob/master/model.py
     https://github.com/sujitpal/dl-models-for-qa
 
     """
 
-    def __init__(self, arg_parser, _):
+    def __init__(self, arg_parser):
         super().__init__(arg_parser)
 
         args = arg_parser.add_argument_group(__name__)
@@ -54,44 +57,24 @@ class RN(KerasModel):
         args.add_argument('--batch-size', type=int, default=32)
         args.add_argument('--context-maxlen', type=int, default=20)
 
-        EMBED_HIDDEN_SIZE = 20
-        MLP_unit = 64
+        EMBED_SIZE = 128
         LSTM_UNITS = 32
 
-        args = arg_parser.parse()
-
-        self.seed = 12
-        self.mask_index = 0
-
-        self.batch_size = args.batch_size
-        self.c_max_len = args.context_maxlen
-        self.s_max_len = self._story_maxlen
-        self.q_max_len = self._query_maxlen
-        self.s_input_step = self._story_maxlen
-        self.q_input_step = self._query_maxlen
-
-        self.s_hidden = args.hidden
-        self.q_hidden = args.hidden
-
-        self.c_word_embed = args.embed
-        self.q_word_embed = args.embed
-
-        self.context_vocab_size = self._vocab_size + 1  # consider masking
-        self.question_vocab_size = self._vocab_size + 1  # consider masking
-        self.answer_vocab_size = self._vocab_size
-
         story = Input((self._story_maxlen, self._sentences_maxlen,), name='story')
+        labels = Input((self._sentences_maxlen,), name='labels')
         question = Input((self._query_maxlen,), name='question')
 
-        embedded = Embedding(self._vocab_size, 200)(story)
-        embedded = Reshape((self._story_maxlen, 200 * self._sentences_maxlen,))(embedded)
-        story_encoder = LSTM(32, return_sequences=True)(embedded)
+        embedded = Embedding(self._vocab_size, EMBED_SIZE)(story)
+        embedded = Reshape((self._sentences_maxlen, EMBED_SIZE * self._story_maxlen,))(embedded)
+        story_encoder = Bidirectional(LSTM(LSTM_UNITS, recurrent_regularizer=regularizers.l2(1e-4), recurrent_dropout=0.25,
+                                           implementation=2, return_sequences=True))(embedded)
 
-        embedded = Embedding(self._vocab_size, 200)(question)
-        question_encoder = LSTM(32)(embedded)
+        embedded = Embedding(self._vocab_size, EMBED_SIZE)(question)
+        question_encoder = Bidirectional(LSTM(LSTM_UNITS, recurrent_regularizer=regularizers.l2(1e-4),
+                                              recurrent_dropout=0.25,  implementation=2))(embedded)
 
         objects = []
-        for k in range(self._story_maxlen):
+        for k in range(self._sentences_maxlen):
             fact_object = Lambda(lambda x: x[:, k, :])(story_encoder)
             objects.append(fact_object)
 
@@ -113,10 +96,8 @@ class RN(KerasModel):
         combined_relation = add(relations)
 
         response = Dense(256, activation='relu')(combined_relation)
-        response = Dropout(0.5)(response)
         response = Dense(512, activation='relu')(response)
-        response = Dropout(0.5)(response)
         response = Dense(self._vocab_size, activation='softmax')(response)
 
-        self._model = Model(inputs=[story, question], outputs=response)
+        self._model = Model(inputs=[story, question, labels], outputs=response)
         self._model.compile(optimizer=Adam(clipnorm=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])

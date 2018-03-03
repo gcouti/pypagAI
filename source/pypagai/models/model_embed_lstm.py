@@ -7,21 +7,19 @@ from pypagai.models.base import KerasModel
 
 class EmbedLSTM(KerasModel):
 
-    ALIAS = "embed_lstm"
-
     """
     Use a simple lstm neural network
     """
 
-    def __init__(self, arg_parser, _):
+    def __init__(self, model_cfg):
 
-        super().__init__(arg_parser)
+        super().__init__(model_cfg)
 
-        args = arg_parser.add_argument_group(__name__)
-        args.add_argument('--hidden', type=int, default=32)
-        args = arg_parser.parse()
+        # args = arg_parser.add_argument_group(__name__)
+        # args.add_argument('--hidden', type=int, default=32)
+        # args = arg_parser.parse()
 
-        hidden = args.hidden
+        hidden = model_cfg['hidden'] if 'hidden' in model_cfg else 32
 
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')

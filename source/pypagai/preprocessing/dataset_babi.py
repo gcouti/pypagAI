@@ -9,9 +9,11 @@ class BaBIDataset(RemoteDataReader):
     ALIAS = 'babi'
     __URL__ = 'https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz'
 
-    def __init__(self, arg_parser, dataset='10k:1'):
-        super().__init__(arg_parser)
-        self.__dataset__ = dataset.split(":") if isinstance(dataset, str) else dataset
+    def __init__(self, reader_cfg, model_cfg):
+        super().__init__(reader_cfg, model_cfg)
+        self.__size__ = '-' + reader_cfg['size'] if 'size' in reader_cfg else ''
+        self.__task__ = reader_cfg['task']
+        self.__strip_sentences__ = reader_cfg['strip_sentences'] if 'strip_sentences' in reader_cfg else False
 
     def __get_stories__(self, f, only_supporting=False, max_length=None):
         """
@@ -21,15 +23,12 @@ class BaBIDataset(RemoteDataReader):
         data = self._parser_.parse_stories(f.readlines(), only_supporting=only_supporting)
         flatten = lambda data: reduce(lambda x, y: x + y, data)
 
-        if not self._args_.strip_sentences:
+        if not self.__strip_sentences__:
             data = [(flatten(story), q, answer) for story, q, answer in data if not max_length or len(flatten(story)) < max_length]
 
         return data
 
     def _download_(self):
-
-        size, task = self.__dataset__
-        size = '-' + size if size == '10k' else ''
 
         challenges = {
             '1': 'tasks_1-20_v1-2/en{}/qa1_single-supporting-fact_{}.txt',
@@ -56,10 +55,10 @@ class BaBIDataset(RemoteDataReader):
 
         path = get_file('babi-tasks-v1-2.tar.gz', origin=self.__URL__)
 
-        challenge = challenges[task]
+        challenge = challenges[self.__task__]
 
         with tarfile.open(path) as tar:
-            train_stories = self.__get_stories__(tar.extractfile(challenge.format(size, 'train')))
-            test_stories = self.__get_stories__(tar.extractfile(challenge.format(size, 'test')))
+            train_stories = self.__get_stories__(tar.extractfile(challenge.format(self.__size__, 'train')))
+            test_stories = self.__get_stories__(tar.extractfile(challenge.format(self.__size__, 'test')))
 
         return train_stories, test_stories

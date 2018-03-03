@@ -1,7 +1,7 @@
 """
 Execute experiments with PypagAI framework
 
-This main has the purpose of train and experiment models. It implement the same interface of the train_model.py
+This main has the purpose realize experiments train and experiment models. It implement the same interface of the train_model.py
 file that was implemented in the PypagAI framework.
 
 You can run this file like:
@@ -18,21 +18,55 @@ To see other options -h
 """
 import logging
 
+
 from pypagai import settings
-from pypagai.util.arguments import PypagaiParser
-from pypagai.experiments.flow import ExperimentFlow
+from pypagai.models.model_embed_lstm import EmbedLSTM
+from pypagai.preprocessing.dataset_babi import BaBIDataset
+from pypagai.preprocessing.parser import SimpleParser
+from sacred import Experiment
+
+from pypagai.util.class_loader import ModelLoader
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
 
-if __name__ == '__main__':
+ex = Experiment('PypagAI')
+
+
+@ex.config
+def default_configuration():
+    """
+    Default configuration
+    """
+    # Dataset reader
+    dataset_cfg = {
+        'reader': BaBIDataset,
+        'parser': SimpleParser,
+        'size': '10k',
+        'task': '1',
+        'strip_sentences': False,
+    }
+
+    model_cfg = {
+        'model': EmbedLSTM,
+        'verbose': True,
+    }
+
+
+@ex.capture
+def transform_inputs(dataset_cfg, model_cfg):
+    if isinstance(model_cfg['model'], str):
+        model_cfg['model'] = ModelLoader().load(model_cfg['model'])
+
+
+@ex.automain
+def run(dataset_cfg, model_cfg):
+
     LOG.info("[START] Experiments")
+    transform_inputs(dataset_cfg, model_cfg)
+    train, validation = dataset_cfg['reader'](dataset_cfg, model_cfg).read()
 
-    LOG.debug("Reading params")
-    args = PypagaiParser()
+    model = model_cfg['model'](model_cfg)
+    metric = model.train(train, validation)
 
-    LOG.debug("Init flow")
-    flow = ExperimentFlow(args)
-    flow.run()
-
-    LOG.info("[END] Experiments")
+    return metric

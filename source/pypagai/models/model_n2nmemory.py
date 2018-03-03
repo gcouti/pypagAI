@@ -6,11 +6,9 @@ from pypagai.models.base import KerasModel
 
 class N2NMemory(KerasModel):
 
-    ALIAS = "n2nmemory"
+    def __init__(self, model_cfg):
 
-    def __init__(self, arg_parser, _):
-
-        super().__init__(arg_parser)
+        super().__init__(model_cfg)
         """
         Keras implementation of: 
         

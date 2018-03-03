@@ -6,18 +6,12 @@ from pypagai.models.base import SciKitModel
 
 class SVMModel(SciKitModel):
 
-    ALIAS = "svm"
-
-    def __init__(self, arg_parser, _):
-        super().__init__(arg_parser)
-
-        args = arg_parser.add_argument_group(__name__)
-        args.add_argument('--kernel', type=str, default='rbf')
-        args = arg_parser.parse()
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
 
         self._model_ = SVC(
             C=1.0,
-            kernel=args.kernel,
+            kernel=model_cfg['kernel'],
             degree=10,
             gamma='auto',
             coef0=0.0,
@@ -34,17 +28,11 @@ class SVMModel(SciKitModel):
 
 class RFModel(SciKitModel):
 
-    ALIAS = "rf"
-
-    def __init__(self, arg_parser, _):
-        super().__init__(arg_parser)
-
-        args = arg_parser.add_argument_group(__name__)
-        args.add_argument('--estimators', type=int, default=500)
-        args = arg_parser.parse()
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
 
         self._model_ = RandomForestClassifier(
-            n_estimators=args.estimators,
+            n_estimators=model_cfg['estimators'],
             max_features="auto",
             min_impurity_decrease=0.,
             bootstrap=True,

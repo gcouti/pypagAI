@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/;
 
 SCRIPT="python examples/main.py"
-COMMON_PARAMETERS="--epochs 500"
+COMMON_PARAMETERS=""
 TASKS=(
-    "-m lstm --hidden 32"
-    "-m lstm --hidden 64"
-    "-m lstm --hidden 128"
-    "-m lstm --hidden 256"
+    "model_cfg.model=pypagai.models.model_embed_lstm.EmbedLSTM"
+    "model_cfg.model=pypagai.models.model_lstm.SimpleLSTM"
 )
 
 DATA_SETS=(
-    "babi:10k:1"
+    "dataset_cfg.task='1' model_cfg.epochs=1"
 #    "babi:10k:2"
 #    "babi:10k:3"
 #    "babi:10k:4"
@@ -37,7 +36,7 @@ python setup.py install
 
 for t in "${TASKS[@]}"; do
     for d in "${DATA_SETS[@]}"; do
-        COMMAND="$SCRIPT -d $d $t"
+        COMMAND="$SCRIPT with $d $t"
         echo "Experiment $COMMAND"
         ${COMMAND}
     done

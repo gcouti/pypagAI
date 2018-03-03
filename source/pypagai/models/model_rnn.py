@@ -6,8 +6,6 @@ from pypagai.models.base import TensorFlowModel
 
 class RNNModel(TensorFlowModel):
 
-    ALIAS = "rnn"
-
     """
     Keras implementation of RNN.
 
@@ -64,14 +62,14 @@ class RNNModel(TensorFlowModel):
       This becomes especially obvious on QA2 and QA3, both far longer than QA1.
     """
 
-    def __init__(self, arg_parser):
-        super().__init__(arg_parser)
-        args = arg_parser.add_argument_group(__name__)
-        args.add_argument('--hidden', type=int, default=32)
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
+        # args = arg_parser.add_argument_group(__name__)
+        # args.add_argument('--hidden', type=int, default=32)
+        #
+        # args = arg_parser.parse()
 
-        args = arg_parser.parse()
-
-        EMBED_HIDDEN_SIZE = args.hidden
+        EMBED_HIDDEN_SIZE = model_cfg['hidden'] if 'hidden' in model_cfg else 32
 
         story_maxlen = self._story_maxlen
         query_maxlen = self._query_maxlen
