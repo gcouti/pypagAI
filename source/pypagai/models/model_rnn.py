@@ -1,10 +1,10 @@
 from keras import Model, Input
-from keras.layers import RNN, Embedding, Dropout, RepeatVector, add, Dense
+from keras.layers import RNN, Embedding, Dropout, RepeatVector, add, Dense, LSTM
 
-from pypagai.models.base import TensorFlowModel
+from pypagai.models.base import TensorFlowModel, KerasModel
 
 
-class RNNModel(TensorFlowModel):
+class RNNModel(KerasModel):
 
     """
     Keras implementation of RNN.
@@ -64,12 +64,8 @@ class RNNModel(TensorFlowModel):
 
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
-        # args = arg_parser.add_argument_group(__name__)
-        # args.add_argument('--hidden', type=int, default=32)
-        #
-        # args = arg_parser.parse()
 
-        EMBED_HIDDEN_SIZE = model_cfg['hidden'] if 'hidden' in model_cfg else 32
+        EMBED_HIDDEN_SIZE = model_cfg['hidden'] if 'hidden' in model_cfg else 50
 
         story_maxlen = self._story_maxlen
         query_maxlen = self._query_maxlen
@@ -82,13 +78,13 @@ class RNNModel(TensorFlowModel):
         question = Input(shape=(query_maxlen,), dtype='int32')
         encoded_question = Embedding(vocab_size, EMBED_HIDDEN_SIZE)(question)
         encoded_question = Dropout(0.3)(encoded_question)
-        encoded_question = RNN(EMBED_HIDDEN_SIZE)(encoded_question)
+        encoded_question = LSTM(EMBED_HIDDEN_SIZE)(encoded_question)
         encoded_question = RepeatVector(story_maxlen)(encoded_question)
 
         merged = add([encoded_sentence, encoded_question])
-        merged = RNN(EMBED_HIDDEN_SIZE)(merged)
+        merged = LSTM(EMBED_HIDDEN_SIZE)(merged)
         merged = Dropout(0.3)(merged)
         preds = Dense(vocab_size, activation='softmax')(merged)
 
-        model = Model([sentence, question], preds)
-        model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        self._model = Model([sentence, question], preds)
+        self._model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])

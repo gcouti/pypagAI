@@ -55,8 +55,8 @@ class BaBIDataset(RemoteDataReader):
 
         path = get_file('babi-tasks-v1-2.tar.gz', origin=self.__URL__)
 
-        challenge = challenges[self.__task__]
-        print("ASDFASDF")
+        challenge = challenges[str(self.__task__)]
+
         with tarfile.open(path) as tar:
             train_stories = self.__get_stories__(tar.extractfile(challenge.format(self.__size__, 'train')))
             test_stories = self.__get_stories__(tar.extractfile(challenge.format(self.__size__, 'test')))

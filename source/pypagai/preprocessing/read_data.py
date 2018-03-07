@@ -62,11 +62,7 @@ class RemoteDataReader(DataReader):
         return dt
 
     def read(self):
-        try:
-            train_stories, test_stories = self._download_()
-        except Exception as e:
-
-            raise Exception('Error downloading dataset, please download it manually', e)
+        train_stories, test_stories = self._download_()
 
         vocab = set()
         for story, q, answer in train_stories + test_stories:

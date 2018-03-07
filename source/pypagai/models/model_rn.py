@@ -13,7 +13,6 @@ from pypagai.models.base import TensorFlowModel, KerasModel
 
 
 class RN(KerasModel):
-    ALIAS = "rn"
 
     """
     Implementation of Relational Neural Network:
@@ -50,12 +49,6 @@ class RN(KerasModel):
 
     def __init__(self, arg_parser):
         super().__init__(arg_parser)
-
-        args = arg_parser.add_argument_group(__name__)
-        args.add_argument('--hidden', type=int, default=32)
-        args.add_argument('--embed', type=int, default=32)
-        args.add_argument('--batch-size', type=int, default=32)
-        args.add_argument('--context-maxlen', type=int, default=20)
 
         EMBED_SIZE = 128
         LSTM_UNITS = 32
