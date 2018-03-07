@@ -97,10 +97,11 @@ class KerasModel(BaseNeuralNetworkModel):
         for epoch in range(self._epochs):
             # , validation_data=(nn_valid, valid.answer)
             LOG.debug("Epoch %i/%i" % (epoch+1, self._epochs))
-            self._model.fit(nn_input, data.answer, callbacks=[callback])
+            self._model.fit(nn_input, data.answer, callbacks=[callback], verbose=self._verbose)
 
             if epoch % 10 == 0:
                 acc, f1 = self.valid(valid)
+                LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
                 if acc > 0.95:
                     LOG.info("Complete before epochs finished %f", acc)
                     break
