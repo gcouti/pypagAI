@@ -27,6 +27,7 @@ class BaseModel:
         self._story_maxlen = model_cfg['story_maxlen']
         self._query_maxlen = model_cfg['query_maxlen']
         self._sentences_maxlen = model_cfg['sentences_maxlen']
+        self._maximum_acc = model_cfg['maximum_acc'] if 'maximum_acc' in model_cfg else 1
 
     def train(self, data, valid=None):
         raise Exception("Not implemented")
@@ -47,6 +48,7 @@ class BaseModel:
         acc = accuracy_score(np.argsort(pred)[:, ::-1][:, 0], true)
         f1 = f1_score(np.argsort(pred)[:, ::-1][:, 0], true, average="macro")
         LOG.info("Accuracy: %f F1: %f", acc, f1)
+
         return acc, f1
 
 
@@ -102,7 +104,7 @@ class KerasModel(BaseNeuralNetworkModel):
             if epoch % 10 == 0:
                 acc, f1 = self.valid(valid)
                 LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
-                if acc > 0.95:
+                if acc > self._maximum_acc:
                     LOG.info("Complete before epochs finished %f", acc)
                     break
 
