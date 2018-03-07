@@ -2,7 +2,7 @@
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/;
 
 SCRIPT="python examples/main.py"
-COMMON_PARAMETERS="model_cfg.epochs=1000"
+COMMON_PARAMETERS="model_cfg.epochs=1000 model_cfg.verbose=False"
 TASKS=(
     "model_cfg.model=pypagai.models.model_embed_lstm.EmbedLSTM"
     "model_cfg.model=pypagai.models.model_lstm.SimpleLSTM"
