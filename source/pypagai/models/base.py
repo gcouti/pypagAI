@@ -3,6 +3,8 @@ import logging
 import numpy as np
 import sys
 
+from sacred import Ingredient
+
 from pypagai import settings
 from sklearn.metrics import accuracy_score, f1_score
 
@@ -11,15 +13,21 @@ callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
 
+model_ingredient = Ingredient('model_cfg')
+
+
+@model_ingredient.config
+def default_model_configuration():
+    """
+    Model configuration
+    """
+    model = 'SimpleLSTM'    # Path to the ML model
+    verbose = True          # True to print info about train
+
 
 class BaseModel:
 
     def __init__(self, model_cfg):
-        # args = arg_parser.add_argument_group('BaseModel')
-        # args.add_argument('-v', '--verbose', type=bool, default=True)
-        #
-        # args = arg_parser.parse()
-
         self._model = None
         self._verbose = model_cfg['verbose'] if 'verbose' in model_cfg else False
 
@@ -28,6 +36,12 @@ class BaseModel:
         self._query_maxlen = model_cfg['query_maxlen']
         self._sentences_maxlen = model_cfg['sentences_maxlen']
         self._maximum_acc = model_cfg['maximum_acc'] if 'maximum_acc' in model_cfg else 1
+
+    @staticmethod
+    def default_config():
+        return {
+            'maximum_acc': .95,
+        }
 
     def train(self, data, valid=None):
         raise Exception("Not implemented")

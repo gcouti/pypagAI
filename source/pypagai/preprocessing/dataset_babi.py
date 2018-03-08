@@ -2,7 +2,14 @@ import tarfile
 from functools import reduce
 from keras.utils import get_file
 
-from pypagai.preprocessing.read_data import RemoteDataReader
+from pypagai.preprocessing.read_data import RemoteDataReader, data_ingredient
+
+
+def default_config():
+    return {
+        'task': 1,
+        'size': '10k',
+    }
 
 
 class BaBIDataset(RemoteDataReader):

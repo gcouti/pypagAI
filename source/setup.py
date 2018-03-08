@@ -15,7 +15,7 @@ setup(
     version='0.0.0',
     description='',
     long_description=readme,
-    url='http://pypag.ai/',
+    url='http://pypaga.io/',
     license=license,
     packages=find_packages(exclude=(
         'examples',

@@ -3,13 +3,27 @@ from __future__ import print_function
 import logging
 
 import numpy as np
-from keras.preprocessing.sequence import pad_sequences
 from nltk import flatten
-
+from sacred import Ingredient
 from pypagai import settings
+from keras.preprocessing.sequence import pad_sequences
+
+from pypagai.preprocessing.parser import SimpleParser
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
+
+data_ingredient = Ingredient('dataset_cfg')
+
+
+@data_ingredient.config
+def default_dataset_configuration():
+    """
+    Dataset configuration
+    """
+    reader='BaBIDataset'    # Path to dataset reader ex.: pypagai.preprocessing.dataset_babi.BaBIDataset
+    parser=SimpleParser     # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
+    strip_sentences=False   # Property to split sentences
 
 
 class ProcessedData:
