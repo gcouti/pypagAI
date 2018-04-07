@@ -1,12 +1,6 @@
+# Question and Anwsering Problem
 
-|pypi| 
-
-
-
-
-# Question Anwsering Problem
-
-Experiments with Neural Networks to solve question answering QA problem.
+Experiments with several Neural Networks to solve question and answering problem.
 
 ## What is Question Answering Problem
 
