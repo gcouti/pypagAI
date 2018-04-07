@@ -13,7 +13,7 @@ from pypagai.preprocessing.parser import SimpleParser
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
 
-data_ingredient = Ingredient('dataset_cfg')
+data_ingredient = Ingredient('dataset_default_cfg')
 
 
 @data_ingredient.config
@@ -21,14 +21,14 @@ def default_dataset_configuration():
     """
     Dataset configuration
     """
-    reader='BaBIDataset'    # Path to dataset reader ex.: pypagai.preprocessing.dataset_babi.BaBIDataset
-    parser=SimpleParser     # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
-    strip_sentences=False   # Property to split sentences
+    reader = 'pypagai.preprocessing.dataset_babi.BaBIDataset'  # Path to dataset reader
+    parser = SimpleParser    # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
+    strip_sentences = False  # Property to split sentences
 
 
 class ProcessedData:
     """
-
+    Class to store information from dataset
     """
     context = None
     query = None
@@ -36,15 +36,17 @@ class ProcessedData:
 
 
 class DataReader:
-
     def __init__(self, reader_cfg, model_cfg):
         self._cfg_ = reader_cfg
         self._model_cfg_ = model_cfg
         self._parser_ = self._cfg_['parser']()
 
+    @staticmethod
+    def default_config():
+        return {}
+
 
 class RemoteDataReader(DataReader):
-
     def _download_(self):
         raise Exception("It should be implemented by children classes")
 

@@ -2,14 +2,7 @@ import tarfile
 from functools import reduce
 from keras.utils import get_file
 
-from pypagai.preprocessing.read_data import RemoteDataReader, data_ingredient
-
-
-def default_config():
-    return {
-        'task': 1,
-        'size': '10k',
-    }
+from pypagai.preprocessing.read_data import RemoteDataReader
 
 
 class BaBIDataset(RemoteDataReader):
@@ -21,6 +14,13 @@ class BaBIDataset(RemoteDataReader):
         self.__size__ = '-' + reader_cfg['size'] if 'size' in reader_cfg else ''
         self.__task__ = reader_cfg['task']
         self.__strip_sentences__ = reader_cfg['strip_sentences'] if 'strip_sentences' in reader_cfg else False
+
+    @staticmethod
+    def default_config():
+        return {
+            'task': 1,
+            'size': '10k',
+        }
 
     def __get_stories__(self, f, only_supporting=False, max_length=None):
         """

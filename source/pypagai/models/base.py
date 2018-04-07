@@ -13,7 +13,7 @@ callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_
 logging.basicConfig(level=settings.LOG_LEVEL)
 LOG = logging.getLogger(__name__)
 
-model_ingredient = Ingredient('model_cfg')
+model_ingredient = Ingredient('model_default_cfg')
 
 
 @model_ingredient.config
@@ -21,8 +21,8 @@ def default_model_configuration():
     """
     Model configuration
     """
-    model = 'SimpleLSTM'    # Path to the ML model
-    verbose = True          # True to print info about train
+    model = 'pypagai.models.model_lstm.SimpleLSTM'    # Path to the ML model
+    verbose = True                                    # True to print info about train
 
 
 class BaseModel:
@@ -104,6 +104,14 @@ class BaseNeuralNetworkModel(BaseModel):
 
 
 class KerasModel(BaseNeuralNetworkModel):
+    """
+    https://github.com/xkortex/Siraj_Chatbot_Challenge
+    https://github.com/erilyth/DeepLearning-Challenges/blob/master/Text_Based_Chatbot/memorynetwork.py
+    https://github.com/EibrielInv/ice-cream-truck/blob/master/chatbot.py
+    https://github.com/llSourcell/How_to_make_a_chatbot/blob/master/memorynetwork.py
+
+    https://ethancaballero.pythonanywhere.com/
+    """
 
     def train(self, data, valid=None):
         """
