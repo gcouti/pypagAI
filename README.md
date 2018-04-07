@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/gcouti/qa/badge.svg?branch=master)](https://coveralls.io/github/gcouti/qa?branch=master)
+
 # Question and Anwsering Problem
 
 Experiments with several Neural Networks to solve question and answering problem.
