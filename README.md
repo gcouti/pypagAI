@@ -1,5 +1,6 @@
 [![Coverage Status](https://coveralls.io/repos/github/gcouti/qa/badge.svg?branch=master)](https://coveralls.io/github/gcouti/qa?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Scrutinizer]https://d2hs8c246tsqgl.cloudfront.net/blog/badges-for-your-repositories/1.png]
 
 # Question and Anwsering Problem
 
