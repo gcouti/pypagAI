@@ -1,11 +1,11 @@
 [![Coverage Status](https://coveralls.io/repos/github/gcouti/qa/badge.svg?branch=master)](https://coveralls.io/github/gcouti/qa?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# Question and Anwsering Problem
+# Question Answering Problem
 
-Experiments with several Neural Networks to solve question and answering problem.
+Experiments with several Neural Networks to solve question answering QA problem.
 
-## What is Question Answering Problem
+## What is a Question Answering problem
 
 Processing and reasoning information is the main characteristic observed in the behavior of intelligent species. However, it is a hard task to transpose this to computer logic, and it has been proven difficult for machine learning algorithms to learn from it. Regardless, some improvement has been made with deep learning models, which encourages us to continue exploring such problems, although a lot of work is required to achieve satisfactory results. This work attempts to explore a set of neural networks which showed good results reasoning problems. 
 
