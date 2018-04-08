@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64/;
 
-SCRIPT="python examples/main.py"
+SCRIPT=".env/bin/python source/examples/main.py"
 COMMON_PARAMETERS="model_cfg.epochs=1 model_cfg.verbose=False"
 TASKS=(
     "model_cfg.model=pypagai.models.model_embed_lstm.EmbedLSTM"
@@ -37,13 +37,9 @@ DATA_SETS=(
 #    "dataset_cfg.task=20"
 )
 
-source .env/bin/activate
-cd source/
-python setup.py install
-
 for t in "${TASKS[@]}"; do
     for d in "${DATA_SETS[@]}"; do
-        COMMAND="$SCRIPT with $d $t $COMMON_PARAMETERS"
+        COMMAND="$SCRIPT with $d $t $COMMON_PARAMETERS -n $t"
         echo "#####################################"
         echo "[START] Invoke new experiment $COMMAND"
         echo "#####################################"

@@ -5,14 +5,11 @@ import logging
 import numpy as np
 from nltk import flatten
 from sacred import Ingredient
-from pypagai import settings
 from keras.preprocessing.sequence import pad_sequences
 
 from pypagai.preprocessing.parser import SimpleParser
 
-logging.basicConfig(level=settings.LOG_LEVEL)
-LOG = logging.getLogger(__name__)
-
+LOG = logging.getLogger('pypagai-logger')
 data_ingredient = Ingredient('dataset_default_cfg')
 
 
