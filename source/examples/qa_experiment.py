@@ -139,8 +139,7 @@ def run(models, dbs, reader, dataset_cfg, model_default_cfg):
                 }
 
                 results.append(r)
-
-    df = pd.DataFrame(results)
-    df.to_csv('result.csv', sep=';', index=False)
+                df = pd.DataFrame(results)
+                df.to_csv('result.csv', sep=';', index=False)
 
     return results
