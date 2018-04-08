@@ -87,6 +87,7 @@ class BaseNeuralNetworkModel(BaseModel):
         self._log_every_ = model_cfg['log_every']
         self._epochs = model_cfg['epochs']
         self._keras_log = model_cfg['keras_log']
+        self._batch_size = model_cfg['batch_size']
 
     @staticmethod
     def default_config():
@@ -94,6 +95,7 @@ class BaseNeuralNetworkModel(BaseModel):
         config['log_every'] = 10
         config['epochs'] = 1000
         config['keras_log'] = False
+        config['batch_size'] = 512
 
         return config
 
@@ -130,7 +132,7 @@ class KerasModel(BaseNeuralNetworkModel):
                 LOG.debug("Epoch %i/%i" % (epoch+1, self._epochs))
 
             call = [callback] if self._keras_log else []
-            self._model.fit(nn_input, data.answer, callbacks=call, verbose=self._verbose)
+            self._model.fit(nn_input, data.answer, callbacks=call, verbose=self._verbose, batch_size=self._batch_size)
 
             # TODO: check if it is possible to done that with capture from sacred
             if epoch % self._log_every_ == 0:
