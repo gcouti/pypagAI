@@ -1,15 +1,11 @@
 from __future__ import print_function
 
-import keras.backend as K
-import theano.tensor as T
-from keras.callbacks import LearningRateScheduler
-from keras.layers import Input, merge, Embedding, LSTM, Reshape, concatenate, add, regularizers, Bidirectional
-from keras.layers.core import Dense, Dropout, Lambda, Activation
-from keras.metrics import categorical_accuracy
+from keras.layers import Input, Embedding, LSTM, Reshape, concatenate, add, regularizers, Bidirectional
+from keras.layers.core import Dense, Dropout, Lambda
 from keras.models import Model
-from keras.optimizers import SGD, Adam
+from keras.optimizers import Adam
 
-from pypagai.models.base import TensorFlowModel, KerasModel
+from pypagai.models.base import KerasModel
 
 
 class RN(KerasModel):

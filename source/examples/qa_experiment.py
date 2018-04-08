@@ -15,7 +15,7 @@ from pypagai.models.model_rnn import RNNModel
 from pypagai.models.model_scikit import SVMModel, RFModel
 from pypagai.preprocessing.dataset_babi import BaBIDataset
 from pypagai.preprocessing.read_data import data_ingredient
-from pypagai.util.class_loader import ModelLoader, DatasetLoader
+from pypagai.util.class_loader import DatasetLoader
 
 ex = Experiment('PypagAI', ingredients=[data_ingredient, model_ingredient])
 LOG = logging.getLogger('pypagai-logger')

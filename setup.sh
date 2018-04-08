@@ -8,3 +8,4 @@ virtualenv -p /usr/bin/python3 .env
 source .env/bin/activate
 
 pip install -r source/requirements.txt
+pip install -e source/.
