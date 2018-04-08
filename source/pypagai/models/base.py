@@ -17,7 +17,7 @@ def default_model_configuration():
     Model configuration
     """
     model = 'pypagai.models.model_lstm.SimpleLSTM'    # Path to the ML model
-    verbose = False                                   # True to print info about train
+    verbose = False                                    # True to print info about train
 
 
 class BaseModel:
@@ -91,7 +91,7 @@ class BaseNeuralNetworkModel(BaseModel):
     def default_config():
         config = BaseModel.default_config()
         config['log_every'] = 10
-        config['epochs'] = 100
+        config['epochs'] = 1000
 
         return config
 

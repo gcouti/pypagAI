@@ -29,7 +29,7 @@ class SVMModel(SciKitModel):
         model = SVC()
 
         param_grid = {
-            'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed' ],
+            'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
             'gamma': [1e-3, 1e-4],
             'C': [1, 10, 100, 1000]
         }
