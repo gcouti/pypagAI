@@ -95,7 +95,7 @@ class BaseNeuralNetworkModel(BaseModel):
         config['log_every'] = 10
         config['epochs'] = 1000
         config['keras_log'] = False
-        config['batch_size'] = 512
+        config['batch_size'] = 1024
 
         return config
 

@@ -59,12 +59,12 @@ def baseline_config():
     models = [
         {
             'model': SimpleLSTM,
-            'parameters': [{'hidden': h for h in [16, 32, 64, 128, 256, 512]}]
+            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
 
         {
             'model': EmbedLSTM,
-            'parameters': [{'hidden': h for h in [16, 32, 64, 128, 256, 512]}]
+            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
 
         {
@@ -84,7 +84,7 @@ def baseline_config():
 
         {
             'model': RNNModel,
-            'parameters': [{'hidden': h for h in [16, 32, 64, 128, 256, 512]}]
+            'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
         },
 
         {

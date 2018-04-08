@@ -42,12 +42,19 @@ class RN(KerasModel):
     https://github.com/sujitpal/dl-models-for-qa
 
     """
+    @staticmethod
+    def default_config():
+        config = KerasModel.default_config()
+        config['embed-size'] = 128
+        config['lstm-units'] = 32
 
-    def __init__(self, arg_parser):
-        super().__init__(arg_parser)
+        return config
 
-        EMBED_SIZE = 128
-        LSTM_UNITS = 32
+    def __init__(self, cfg):
+        super().__init__(cfg)
+
+        EMBED_SIZE = cfg['emed-size']
+        LSTM_UNITS = cfg['lstm-units']
 
         story = Input((self._story_maxlen, self._sentences_maxlen,), name='story')
         labels = Input((self._sentences_maxlen,), name='labels')

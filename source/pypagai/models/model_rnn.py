@@ -62,10 +62,17 @@ class RNNModel(KerasModel):
       This becomes especially obvious on QA2 and QA3, both far longer than QA1.
     """
 
+    @staticmethod
+    def default_config():
+        config = KerasModel.default_config()
+        config['hidden'] = 50
+
+        return config
+
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
 
-        EMBED_HIDDEN_SIZE = model_cfg['hidden'] if 'hidden' in model_cfg else 50
+        EMBED_HIDDEN_SIZE = model_cfg['hidden']
 
         story_maxlen = self._story_maxlen
         query_maxlen = self._query_maxlen

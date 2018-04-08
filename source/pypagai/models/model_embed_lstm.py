@@ -10,6 +10,12 @@ class EmbedLSTM(KerasModel):
     """
     Use a simple lstm neural network
     """
+    @staticmethod
+    def default_config():
+        config = KerasModel.default_config()
+        config['hidden'] = 32
+
+        return config
 
     def __init__(self, model_cfg):
 
@@ -19,7 +25,7 @@ class EmbedLSTM(KerasModel):
         # args.add_argument('--hidden', type=int, default=32)
         # args = arg_parser.parse()
 
-        hidden = model_cfg['hidden'] if 'hidden' in model_cfg else 32
+        hidden = model_cfg['hidden']
 
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')

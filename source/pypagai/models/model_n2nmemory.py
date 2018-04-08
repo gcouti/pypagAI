@@ -44,18 +44,28 @@ class N2NMemory(KerasModel):
         input_sequence = Input((self._story_maxlen, ))
         question = Input((self._query_maxlen,))
 
-        answer = self.create_network(input_sequence, question)
+        answer = self.create_network(input_sequence, question, model_cfg)
 
         # build the final model
         self._model = Model([input_sequence, question], answer)
         self._model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
-    def create_network(self, input_sequence, question):
+    @staticmethod
+    def default_config():
+        config = KerasModel.default_config()
+        config['dropout'] = 0.3
+        config['activation'] = 'softmax'
+        config['samples'] = 32
+        config['embedding'] = 64
 
-        drop_out = 0.3
-        activation = 'softmax'
-        samples = 32
-        embedding = 64
+        return config
+
+    def create_network(self, input_sequence, question, cfg):
+
+        drop_out = cfg['dropout']
+        activation = cfg['activation']
+        samples = cfg['samples']
+        embedding = cfg['embedding']
 
         # encoders
         # embed the input sequence into a sequence of vectors
