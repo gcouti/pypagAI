@@ -1,5 +1,5 @@
 from keras import Model, Input
-from keras.layers import Dense, concatenate, LSTM, Embedding
+from keras.layers import Dense, concatenate, LSTM, Embedding, Dropout, add
 from keras.optimizers import Adam
 
 from pypagai.models.base import KerasModel
@@ -30,8 +30,14 @@ class EmbedLSTM(KerasModel):
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')
 
-        conc = concatenate([story, question])
-        conc = Embedding(self._vocab_size, 200)(conc)
+        eb_story = Embedding(self._vocab_size, 64)(story)
+        eb_story = Dropout(0.3)(eb_story)
+
+        eb_question = Embedding(self._vocab_size, 64)(question)
+        eb_question = Dropout(0.3)(eb_question)
+
+
+        conc = concatenate([eb_story, eb_question], axis=1)
 
         response = LSTM(hidden, dropout=0.2, recurrent_dropout=0.2)(conc)
         response = Dense(self._vocab_size, activation='softmax')(response)

@@ -60,7 +60,7 @@ def baseline_config():
     models = [
         {
             'model': SimpleLSTM,
-            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
+            'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
         },
 
         {
