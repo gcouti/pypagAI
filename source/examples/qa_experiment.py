@@ -2,6 +2,7 @@ from datetime import datetime
 import logging
 import logging.config
 
+import json
 import pandas as pd
 from sacred import Experiment
 
@@ -22,7 +23,7 @@ LOG = logging.getLogger('pypagai-logger')
 
 
 @ex.config
-def default_config(dataset_default_cfg, model_default_cfg):
+def default_config(dataset_default_cfg):
     reader = None  # Reader Instance
     if isinstance(dataset_default_cfg['reader'], str):
         reader = DatasetLoader().load(dataset_default_cfg['reader'])
@@ -59,41 +60,41 @@ def baseline_config():
     models = [
         {
             'model': SimpleLSTM,
-            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
+            # 'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
 
         {
             'model': EmbedLSTM,
-            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
+        #     'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
-
-        {
-            'model': EncoderModel,
-        },
-
-        {
-            'model': N2NMemory,
-        },
-
-        {
-            'model': RN,
-            'reader_cfg': {
-                'strip_sentences': True
-            }
-        },
-
-        {
-            'model': RNNModel,
-            'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
-        },
-
-        {
-            'model': RFModel,
-        },
-
-        {
-            'model': SVMModel,
-        },
+        #
+        # {
+        #     'model': EncoderModel,
+        # },
+        #
+        # {
+        #     'model': N2NMemory,
+        # },
+        #
+        # {
+        #     'model': RN,
+        #     'reader_cfg': {
+        #         'strip_sentences': True
+        #     }
+        # },
+        #
+        # {
+        #     'model': RNNModel,
+        #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
+        # },
+        #
+        # {
+        #     'model': RFModel,
+        # },
+        #
+        # {
+        #     'model': SVMModel,
+        # },
 
     ]
 
@@ -109,7 +110,6 @@ def run(models, dbs, reader, dataset_cfg, model_default_cfg):
     """
 
     LOG.info("[START] Experiments")
-
     results = []
     for cfg in models:
         model = cfg['model']
@@ -130,12 +130,16 @@ def run(models, dbs, reader, dataset_cfg, model_default_cfg):
                 acc, f1 = estimator.valid(validation)
 
                 r = {
-                    'model': model,
+                    'model': model.__name__,
                     'acc': acc,
                     'f1': f1,
                     'db': db_cfg['reader'].ALIAS,
-                    'db_parameters': dataset_cfg,
-                    'model_cfg': model_cfg
+                    'db_parameters': json.dumps(
+                        {k: v if isinstance(v, str) or isinstance(v, int) or isinstance(v, float) else v.__name__ for
+                         k, v in dataset_cfg.items()}),
+                    'model_cfg': json.dumps(
+                        {k: v if isinstance(v, str) or isinstance(v, int) or isinstance(v, float) else v.__name__ for
+                         k, v in dataset_cfg.items()}),
                 }
 
                 results.append(r)

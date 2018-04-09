@@ -93,9 +93,9 @@ class BaseNeuralNetworkModel(BaseModel):
     def default_config():
         config = BaseModel.default_config()
         config['log_every'] = 10
-        config['epochs'] = 1000
+        config['epochs'] = 10
         config['keras_log'] = False
-        config['batch_size'] = 1024
+        config['batch_size'] = 512
 
         return config
 
