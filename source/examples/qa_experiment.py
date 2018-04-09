@@ -60,41 +60,41 @@ def baseline_config():
     models = [
         {
             'model': SimpleLSTM,
-            # 'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
+            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
 
         {
             'model': EmbedLSTM,
-        #     'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
+            'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
-        #
-        # {
-        #     'model': EncoderModel,
-        # },
-        #
-        # {
-        #     'model': N2NMemory,
-        # },
-        #
-        # {
-        #     'model': RN,
-        #     'reader_cfg': {
-        #         'strip_sentences': True
-        #     }
-        # },
-        #
-        # {
-        #     'model': RNNModel,
-        #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
-        # },
-        #
-        # {
-        #     'model': RFModel,
-        # },
-        #
-        # {
-        #     'model': SVMModel,
-        # },
+
+        {
+            'model': EncoderModel,
+        },
+
+        {
+            'model': N2NMemory,
+        },
+
+        {
+            'model': RN,
+            'reader_cfg': {
+                'strip_sentences': True
+            }
+        },
+
+        {
+            'model': RNNModel,
+            'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
+        },
+
+        {
+            'model': RFModel,
+        },
+
+        {
+            'model': SVMModel,
+        },
 
     ]
 
