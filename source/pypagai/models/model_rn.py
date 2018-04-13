@@ -53,7 +53,7 @@ class RN(KerasModel):
     def __init__(self, cfg):
         super().__init__(cfg)
 
-        EMBED_SIZE = cfg['emed-size']
+        EMBED_SIZE = cfg['embed-size']
         LSTM_UNITS = cfg['lstm-units']
 
         story = Input((self._story_maxlen, self._sentences_maxlen,), name='story')

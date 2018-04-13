@@ -7,6 +7,7 @@ import pandas as pd
 from sacred import Experiment
 
 from pypagai.models.base import model_ingredient
+from pypagai.models.model_conv_rn import ConvRN
 from pypagai.models.model_embed_lstm import EmbedLSTM
 from pypagai.models.model_encoder import EncoderModel
 from pypagai.models.model_lstm import SimpleLSTM
@@ -56,49 +57,62 @@ def read_model(model, model_cfg):
 
 
 @ex.named_config
+def babi_config():
+    dbs = [{'reader': BaBIDataset, 'task': t} for t in range(1, 21)]
+
+
+@ex.named_config
 def baseline_config():
     models = [
-        {
-            'model': SimpleLSTM,
-            'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
-        },
+        # {
+        #     'model': SimpleLSTM,
+        #     'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
+        # },
 
         {
             'model': EmbedLSTM,
             'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
         },
 
-        {
-            'model': EncoderModel,
-        },
-
-        {
-            'model': N2NMemory,
-        },
-
-        {
-            'model': RN,
-            'reader_cfg': {
-                'strip_sentences': True
-            }
-        },
-
-        {
-            'model': RNNModel,
-            'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
-        },
-
-        {
-            'model': RFModel,
-        },
-
-        {
-            'model': SVMModel,
-        },
-
+        # {
+        #     'model': EncoderModel,
+        # },
+        #
+        # {
+        #     'model': N2NMemory,
+        # },
+        #
+        # {
+        #     'model': RN,
+        #     'reader_cfg': {
+        #         'strip_sentences': True
+        #     }
+        # },
+        #
+        # {
+        #     'model': RNNModel,
+        #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
+        # },
+        #
+        # {
+        #     'model': RFModel,
+        # },
+        #
+        # {
+        #     'model': SVMModel,
+        # },
     ]
 
-    dbs = [{'reader': BaBIDataset, 'task': t} for t in range(1, 21)]
+
+@ex.named_config
+def my_models_config():
+
+    models = [
+        {
+             'model': ConvRN,
+             'parameters': [{}]
+        },
+    ]
 
 
 @ex.automain
