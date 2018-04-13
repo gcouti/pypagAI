@@ -134,6 +134,7 @@ def run(models, dbs, reader, dataset_cfg, model_default_cfg):
                 model_cfg.update(model_default_cfg)
                 model_cfg.update(model.default_config())
                 model_cfg.update(m_cfg)
+                model_cfg['epochs'] = 10
 
                 dataset_cfg.update(db_cfg)
                 dataset_cfg.update(cfg['reader_cfg'] if 'reader_cfg' in cfg else {})

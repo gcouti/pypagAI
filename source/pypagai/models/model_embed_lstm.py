@@ -21,10 +21,6 @@ class EmbedLSTM(KerasModel):
 
         super().__init__(model_cfg)
 
-        # args = arg_parser.add_argument_group(__name__)
-        # args.add_argument('--hidden', type=int, default=32)
-        # args = arg_parser.parse()
-
         hidden = model_cfg['hidden']
 
         story = Input((self._story_maxlen, ), name='story')
@@ -35,7 +31,6 @@ class EmbedLSTM(KerasModel):
 
         eb_question = Embedding(self._vocab_size, 64)(question)
         eb_question = Dropout(0.3)(eb_question)
-
 
         conc = concatenate([eb_story, eb_question], axis=1)
 
