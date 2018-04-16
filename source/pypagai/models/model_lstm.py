@@ -1,5 +1,5 @@
 from keras import Model, Input
-from keras.layers import Dense, concatenate, LSTM, Reshape
+from keras.layers import Dense, concatenate, LSTM, Reshape, Permute
 from keras.optimizers import Adam
 
 from pypagai.models.base import KerasModel
@@ -23,8 +23,9 @@ class SimpleLSTM(KerasModel):
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')
 
-        conc = concatenate([story, question])
+        conc = concatenate([story, question],)
         conc = Reshape((1, int(conc.shape[1])))(conc)
+        conc = Permute((2, 1))(conc)
 
         response = LSTM(hidden, dropout=0.2, recurrent_dropout=0.2)(conc)
         response = Dense(self._vocab_size, activation='softmax')(response)

@@ -92,10 +92,10 @@ class BaseNeuralNetworkModel(BaseModel):
     @staticmethod
     def default_config():
         config = BaseModel.default_config()
-        config['log_every'] = 10
+        config['log_every'] = 50
         config['epochs'] = 1000
         config['keras_log'] = False
-        config['batch_size'] = 32
+        config['batch_size'] = 256
 
         return config
 
@@ -114,9 +114,6 @@ class BaseNeuralNetworkModel(BaseModel):
 class KerasModel(BaseNeuralNetworkModel):
     """
     https://github.com/xkortex/Siraj_Chatbot_Challenge
-    https://github.com/erilyth/DeepLearning-Challenges/blob/master/Text_Based_Chatbot/memorynetwork.py
-    https://github.com/EibrielInv/ice-cream-truck/blob/master/chatbot.py
-    https://github.com/llSourcell/How_to_make_a_chatbot/blob/master/memorynetwork.py
 
     https://ethancaballero.pythonanywhere.com/
     """
@@ -126,21 +123,24 @@ class KerasModel(BaseNeuralNetworkModel):
         Train models with neural network inputs "story" and "question" with the expected result "answer"
         """
         nn_input = self._network_input_(data)
-        for epoch in range(self._epochs):
-            # , validation_data=(nn_valid, valid.answer)
+        for epoch in range(1, self._epochs, self._log_every_):
+
             if self._verbose:
                 LOG.debug("Epoch %i/%i" % (epoch+1, self._epochs))
 
-            call = [callback] if self._keras_log else []
-            self._model.fit(nn_input, data.answer, callbacks=call, verbose=self._verbose, batch_size=self._batch_size)
+            self._model.fit(nn_input, data.answer,
+                            callbacks=[callback] if self._keras_log else [],
+                            verbose=self._verbose,
+                            batch_size=self._batch_size,
+                            epochs=self._log_every_)
+
+            acc, f1 = self.valid(valid)
+            LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
 
             # TODO: check if it is possible to done that with capture from sacred
-            if epoch % self._log_every_ == 0:
-                acc, f1 = self.valid(valid)
-                LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
-                if acc > self._maximum_acc:
-                    LOG.info("Complete before epochs finished %f", acc)
-                    break
+            if acc > self._maximum_acc:
+                LOG.info("Complete before epochs finished %f", acc)
+                break
 
     def valid(self, data):
         nn_input = self._network_input_(data)

@@ -35,6 +35,7 @@ class RN(KerasModel):
     The softmax output was optimized with a cross-entropy loss function using the Adam optimizer with a learning
     rate of 2e-4 .
 
+    References
     https://github.com/jgpavez/qa-babi/blob/master/babi_rn.py
     https://github.com/juung/Relation-Network/blob/master/model.py
     https://github.com/gitlimlab/Relation-Network-Tensorflow/blob/master/model_rn.py
@@ -79,13 +80,13 @@ class RN(KerasModel):
             for fact_object_2 in objects:
                 r = concatenate([fact_object_1, fact_object_2, question_encoder])
                 response = Dense(256, activation='relu')(r)
-                response = Dropout(0.5)(response)
+                response = Dropout(0.3)(response)
                 response = Dense(256, activation='relu')(response)
-                response = Dropout(0.5)(response)
+                response = Dropout(0.3)(response)
                 response = Dense(256, activation='relu')(response)
-                response = Dropout(0.5)(response)
+                response = Dropout(0.3)(response)
                 response = Dense(256, activation='relu')(response)
-                response = Dropout(0.5)(response)
+                response = Dropout(0.3)(response)
 
                 relations.append(response)
 

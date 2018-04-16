@@ -1,5 +1,5 @@
 from keras import Model, Input
-from keras.layers import Dense, concatenate, LSTM, Embedding, Dropout, add
+from keras.layers import Dense, concatenate, LSTM, Embedding, Dropout
 from keras.optimizers import Adam
 
 from pypagai.models.base import KerasModel

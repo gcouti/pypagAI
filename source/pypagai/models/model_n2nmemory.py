@@ -1,6 +1,5 @@
 from keras import Input, Model, Sequential
-from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense, LSTM
-
+from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense
 from pypagai.models.base import KerasModel
 
 
@@ -108,7 +107,7 @@ class N2NMemory(KerasModel):
 
         # the original paper uses a matrix multiplication for this reduction step.
         # we choose to use a RNN instead.
-        answer = LSTM(samples)(answer)  # (samples, 32)
+        answer = SimpleRNN(samples)(answer)  # (samples, 32)
 
         # one regularization layer -- more would probably be needed.
         answer = Dropout(drop_out)(answer)
