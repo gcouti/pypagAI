@@ -52,7 +52,7 @@ def read_model(model, model_cfg):
 
 @ex.named_config
 def babi_config():
-    dbs = [{'reader': BaBIDataset, 'task': t} for t in range(1, 13)]
+    dbs = [{'reader': BaBIDataset, 'task': t} for t in range(1, 20)]
 
 
 @ex.named_config
