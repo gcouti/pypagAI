@@ -63,8 +63,19 @@ class BaseModel:
 
 class SciKitModel(BaseModel):
 
+    @staticmethod
+    def default_config():
+        config = BaseModel.default_config()
+        config['log_every'] = 50
+        config['epochs'] = 1000
+        config['keras_log'] = False
+        config['batch_size'] = 32
+
+        return config
+
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
+        self.model = model_cfg['model']
 
     def train(self, data, valid=None):
         self._model.fit(self._network_input_(data), data.answer)

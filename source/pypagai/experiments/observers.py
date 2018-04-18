@@ -51,3 +51,21 @@ class PypagAIFileStorageObserver(FileStorageObserver):
 
         if self.persis_model:
             ModelDumper(result).dump(os.path.join(self.dir, 'model.pkl'))
+
+
+            # r = {
+            #     'model': model.__name__,
+            #     'acc': acc,
+            #     'f1': f1,
+            #     'db': db_cfg['reader'].ALIAS,
+            #     'db_parameters': json.dumps(
+            #         {k: v if isinstance(v, str) or isinstance(v, int) or isinstance(v, float) else v.__name__ for
+            #          k, v in dataset_cfg.items()}),
+            #     'model_cfg': json.dumps(
+            #         {k: v if isinstance(v, str) or isinstance(v, int) or isinstance(v, float) else v.__name__ for
+            #          k, v in dataset_cfg.items()}),
+            # }
+            #
+            # results.append(r)
+            # df = pd.DataFrame(results)
+            # df.to_csv('result.csv', sep=';', index=False)
