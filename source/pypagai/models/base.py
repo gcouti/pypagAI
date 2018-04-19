@@ -77,13 +77,17 @@ class SciKitModel(BaseModel):
 
     def valid(self, data):
         predictions = self._model.predict(self._network_input_(data))
-        return self.metrics(np.array([predictions]), data.answer)
+        return self.metrics(np.array([predictions]).T, data.answer)
 
     def predict(self, data):
         self._model.predict(self._network_input_(data))
 
     def _network_input_(self, data):
-        return np.hstack([data.context, data.query])
+        #TODO: Transformar a entrada em labels
+        context = data.context
+        query = data.query
+
+        return np.hstack([context, query])
 
 
 class BaseNeuralNetworkModel(BaseModel):
