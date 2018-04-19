@@ -5,11 +5,10 @@ from datetime import datetime
 from sacred import Experiment
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
-from tensorflow.contrib.learn import SVM
+from sklearn.svm import SVC
 
-from pypagai.models.base import model_ingredient
+from pypagai.models.base import model_ingredient, SciKitModel
 from pypagai.models.model_lstm import SimpleLSTM
-from pypagai.models.model_my import ReluN2NMemory
 from pypagai.preprocessing.read_data import data_ingredient
 from pypagai.util.class_loader import DatasetLoader, ModelLoader
 
@@ -18,27 +17,7 @@ LOG = logging.getLogger('pypagai-logger')
 
 
 @ex.config
-def default_config(dataset_default_cfg, model_default_cfg):
-    reader = None  # Reader Instance
-    if isinstance(dataset_default_cfg['reader'], str):
-        reader = DatasetLoader().load(dataset_default_cfg['reader'])
-    else:
-        reader = dataset_default_cfg['reader']
-
-    model = None  # Model Instance
-    if isinstance(model_default_cfg['model'], str):
-        model = ModelLoader().load(model_default_cfg['model'])
-    else:
-        model = model_default_cfg['model']
-
-    dataset_cfg = {}
-    dataset_cfg.update(dataset_default_cfg)
-    dataset_cfg.update(reader.default_config())
-
-    model_cfg = {}
-    model_cfg.update(model_default_cfg)
-    model_cfg.update(model.default_config())
-
+def default_framework_config():
     framework_cfg = {
         'TEMPORARY_MODEL_PATH': '/tmp/tmp_model_%i' % datetime.now().timestamp(),
         'TEMPORARY_RESULT_PATH': '/tmp/tmp_model_result_%i.json' % datetime.now().timestamp(),
@@ -48,6 +27,32 @@ def default_config(dataset_default_cfg, model_default_cfg):
 
     logging.Formatter(framework_cfg['LOG_FORMAT'])
     LOG.setLevel(framework_cfg['LOG_LEVEL'])
+
+
+@ex.config
+def default_dataset_config(dataset_default_cfg):
+    reader = None  # Reader Instance
+    if isinstance(dataset_default_cfg['reader'], str):
+        reader = DatasetLoader().load(dataset_default_cfg['reader'])
+    else:
+        reader = dataset_default_cfg['reader']
+
+    dataset_cfg = {}
+    dataset_cfg.update(dataset_default_cfg)
+    dataset_cfg.update(reader.default_config())
+
+
+@ex.config
+def default_model_config(model_default_cfg):
+    model = None  # Model Instance
+    if isinstance(model_default_cfg['model'], str):
+        model = ModelLoader().load(model_default_cfg['model'])
+    else:
+        model = model_default_cfg['model']
+
+    model_cfg = {}
+    model_cfg.update(model_default_cfg)
+    model_cfg.update(model.default_config())
 
 
 @ex.capture
@@ -71,25 +76,32 @@ def read_model(model, model_cfg):
 
 
 @ex.named_config
-def svm_config(model_default_cfg):
-    model_default_cfg['model'] = SVM
-    model_default_cfg['grid_search'] = {
+def svm_config():
+    model = SciKitModel
+
+    model_cfg = {}
+    model_cfg.update(model.default_config())
+    model_cfg['model'] = GridSearchCV(SVC(), param_grid={
         'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
         'gamma': [1e-3, 1e-4],
         'C': [1, 10, 100, 1000]
-    }
+    })
 
 
 @ex.named_config
-def rf_config(model_cfg):
+def rf_config():
+    model = SciKitModel
+
+    model_cfg = {}
+    model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(RandomForestClassifier(), param_grid={
-        "max_depth": [3, 10, 100, None],
-        "max_features": [1, 3, 10],
-        "min_samples_split": [2, 3, 10],
-        "min_samples_leaf": [1, 3, 10],
-        "bootstrap": [True, False],
-        "n_estimators": [50, 100, 200, 300],
-        "criterion": ["gini", "entropy"]
+        # "max_depth": [3, 10, 100, None],
+        # "max_features": [1, 3, 10],
+        # "min_samples_split": [2, 3, 10],
+        # "min_samples_leaf": [1, 3, 10],
+        # "bootstrap": [True, False],
+        # "n_estimators": [50, 100, 200, 300],
+        # "criterion": ["gini", "entropy"]
     })
 
 
@@ -109,20 +121,8 @@ def simple_lstm(model_cfg):
         #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
 
 
-
-@ex.named_config
-def my_models_config():
-
-    models = [
-        {
-             'model': ReluN2NMemory,
-             'parameters': [{}]
-        },
-    ]
-
-
 @ex.automain
-def run(dataset_cfg, model_cfg):
+def run():
     """
     This main use sacred experiments framework. To show all parameters type:
 
