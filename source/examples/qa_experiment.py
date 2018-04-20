@@ -104,13 +104,13 @@ def rf_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(RandomForestClassifier(), param_grid={
-        "max_depth": [3, 10, 100, None],
-        "max_features": [1, 3, 10],
-        "min_samples_split": [2, 3, 10],
-        "min_samples_leaf": [1, 3, 10],
-        "bootstrap": [True, False],
-        "n_estimators": [50, 100, 200, 300],
-        "criterion": ["gini", "entropy"]
+        # "max_depth": [3, 10, 100, None],
+        # "max_features": [1, 3, 10],
+        # "min_samples_split": [2, 3, 10],
+        # "min_samples_leaf": [1, 3, 10],
+        # "bootstrap": [True, False],
+        # "n_estimators": [50, 100, 200, 300],
+        # "criterion": ["gini", "entropy"]
     })
 
 
