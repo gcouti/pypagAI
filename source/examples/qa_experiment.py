@@ -2,17 +2,26 @@ import logging
 import logging.config
 from datetime import datetime
 
+import os
 from sacred import Experiment
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
 from sklearn.svm import SVC
 
+from pypagai.experiments.observers import PypagAIFileStorageObserver
 from pypagai.models.base import model_ingredient, SciKitModel
 from pypagai.models.model_lstm import SimpleLSTM
 from pypagai.preprocessing.read_data import data_ingredient
 from pypagai.util.class_loader import DatasetLoader, ModelLoader
 
+path_template = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    'report_template.ipynb'
+)
+
 ex = Experiment('PypagAI', ingredients=[data_ingredient, model_ingredient])
+ex.observers.append(PypagAIFileStorageObserver.create('experiments-storage', template=path_template))
+
 LOG = logging.getLogger('pypagai-logger')
 
 
@@ -95,13 +104,13 @@ def rf_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(RandomForestClassifier(), param_grid={
-        # "max_depth": [3, 10, 100, None],
-        # "max_features": [1, 3, 10],
-        # "min_samples_split": [2, 3, 10],
-        # "min_samples_leaf": [1, 3, 10],
-        # "bootstrap": [True, False],
-        # "n_estimators": [50, 100, 200, 300],
-        # "criterion": ["gini", "entropy"]
+        "max_depth": [3, 10, 100, None],
+        "max_features": [1, 3, 10],
+        "min_samples_split": [2, 3, 10],
+        "min_samples_leaf": [1, 3, 10],
+        "bootstrap": [True, False],
+        "n_estimators": [50, 100, 200, 300],
+        "criterion": ["gini", "entropy"]
     })
 
 
@@ -135,4 +144,7 @@ def run():
     estimator.train(train, validation)
     acc, f1 = estimator.valid(validation)
 
-    return estimator, acc, f1
+    return {
+        'accuracy': acc,
+        'f1': f1,
+    }

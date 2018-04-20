@@ -7,7 +7,8 @@ from sacred.observers.file_storage import FileStorageObserver
 
 class PypagAIFileStorageObserver(FileStorageObserver):
 
-    def __init__(self):
+    def __init__(self, basedir, resource_dir=None, source_dir=None, template=None, priority=20):
+        super().__init__(basedir, resource_dir, source_dir, template, priority)
         self.basedir = '/tmp/dummy-folder'
         self.persis_model = False
 
@@ -25,9 +26,6 @@ class PypagAIFileStorageObserver(FileStorageObserver):
         return storage.started_event(ex_info, command, host_info, start_time, config, meta_info, _id)
 
     def heartbeat_event(self, info, captured_out, beat_time, result):
-
-        print(beat_time)
-        print(result)
 
         if 'raw_results' in info:
 

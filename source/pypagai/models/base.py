@@ -61,6 +61,7 @@ class BaseModel:
         return acc, f1
 
 
+from sklearn import preprocessing
 class SciKitModel(BaseModel):
 
     @staticmethod
@@ -71,23 +72,32 @@ class SciKitModel(BaseModel):
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
         self._model = model_cfg['model']
+        self._le = preprocessing.LabelBinarizer()
 
     def train(self, data, valid=None):
-        self._model.fit(self._network_input_(data), data.answer)
+        self._le.fit(np.array([data.answer]).T)
+        trans = self._network_input_(self._le.fit_transform, data)
+        answer = self._le.transform(np.array([data.answer]).T)
+
+        self._model.fit(trans, answer)
 
     def valid(self, data):
-        predictions = self._model.predict(self._network_input_(data))
-        return self.metrics(np.array([predictions]).T, data.answer)
+        trans = self._network_input_(self._le.transform, data)
+        predictions = self._model.predict(trans)
+        return self.metrics(predictions, data.answer)
 
     def predict(self, data):
-        self._model.predict(self._network_input_(data))
+        trans = self._network_input_(self._le.transform, data)
+        return self._model.predict(trans)
 
-    def _network_input_(self, data):
-        #TODO: Transformar a entrada em labels
-        context = data.context
-        query = data.query
-
-        return np.hstack([context, query])
+    @staticmethod
+    def _network_input_(func, data):
+        trans = np.hstack([data.context, data.query])
+        shape = trans.shape
+        trans = np.reshape(trans, (1, shape[0]*shape[1]))[0]
+        trans = func(trans)
+        trans = np.reshape(trans, (shape[0], shape[1] * trans.shape[1]))
+        return trans
 
 
 class BaseNeuralNetworkModel(BaseModel):
