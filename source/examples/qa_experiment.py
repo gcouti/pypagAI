@@ -3,7 +3,11 @@ import logging.config
 from datetime import datetime
 
 import os
+
+from experiments.evaluation import evaluate_results, make_result_frame, classification_report
+from experiments.model_selection import cv_predict
 from sacred import Experiment
+from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
 from sklearn.svm import SVC
@@ -20,7 +24,7 @@ path_template = os.path.join(
 )
 
 ex = Experiment('PypagAI', ingredients=[data_ingredient, model_ingredient])
-ex.observers.append(PypagAIFileStorageObserver.create('experiments-storage', template=path_template))
+ex.observers.append(PypagAIFileStorageObserver.create('results/', template=path_template))
 
 LOG = logging.getLogger('pypagai-logger')
 
@@ -32,6 +36,7 @@ def default_framework_config():
         'TEMPORARY_RESULT_PATH': '/tmp/tmp_model_result_%i.json' % datetime.now().timestamp(),
         'LOG_LEVEL': logging.INFO,
         'LOG_FORMAT': '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+        'test_size': .2,
     }
 
     logging.Formatter(framework_cfg['LOG_FORMAT'])
@@ -131,7 +136,7 @@ def simple_lstm(model_cfg):
 
 
 @ex.automain
-def run():
+def run(_run, framework_cfg):
     """
     This main use sacred experiments framework. To show all parameters type:
 
@@ -141,10 +146,29 @@ def run():
 
     train, validation = read_data()
     estimator = read_model()
-    estimator.train(train, validation)
-    acc, f1 = estimator.valid(validation)
 
-    return {
-        'accuracy': acc,
-        'f1': f1,
+    # cross-validation prediction on training set
+    val_results = cv_predict(estimator, train)
+
+    prediction = estimator.predict(validation)
+
+    val_report = classification_report(val_results.y_true, val_results.y_pred)
+    test_report = classification_report(prediction, validation.answer)
+    test_results = make_result_frame(prediction, validation.answer)
+
+    metrics = ['f1_macro', 'f1_micro', 'recall', 'precision']
+
+    # will be storage
+    _run.info = {
+        'raw_results': {
+            'validation': val_results,
+            'test': test_results
+        }
     }
+
+    vis_frame = "{} Set Results:\n\n{}\n\nclassification report\n{}\n\n##########################################\n\n"
+
+    _run.run_logger.info(vis_frame.format("Validation", evaluate_results(val_results, metrics=metrics), val_report))
+    _run.run_logger.info(vis_frame.format("Test", evaluate_results(test_results, metrics=metrics), test_report))
+
+    return estimator

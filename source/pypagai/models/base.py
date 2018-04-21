@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 from sacred import Ingredient
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn import preprocessing
 
 callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_graph=True, write_images=True)
 
@@ -44,24 +44,7 @@ class BaseModel:
     def predict(self, data):
         raise Exception("Not implemented")
 
-    def valid(self, data):
-        raise Exception("Not implemented")
 
-    def metrics(self, pred, true):
-        """
-        Print metrics based on predicted answers and true answers
-
-        :param pred: Predicted
-        :param true: True answers
-        """
-        acc = accuracy_score(np.argsort(pred)[:, ::-1][:, 0], true)
-        f1 = f1_score(np.argsort(pred)[:, ::-1][:, 0], true, average="macro")
-        LOG.info("Accuracy: %f F1: %f", acc, f1)
-
-        return acc, f1
-
-
-from sklearn import preprocessing
 class SciKitModel(BaseModel):
 
     @staticmethod
@@ -80,11 +63,6 @@ class SciKitModel(BaseModel):
         answer = self._le.transform(np.array([data.answer]).T)
 
         self._model.fit(trans, answer)
-
-    def valid(self, data):
-        trans = self._network_input_(self._le.transform, data)
-        predictions = self._model.predict(trans)
-        return self.metrics(predictions, data.answer)
 
     def predict(self, data):
         trans = self._network_input_(self._le.transform, data)
@@ -161,11 +139,6 @@ class KerasModel(BaseNeuralNetworkModel):
             if acc > self._maximum_acc:
                 LOG.info("Complete before epochs finished %f", acc)
                 break
-
-    def valid(self, data):
-        nn_input = self._network_input_(data)
-        predictions = self._model.predict(nn_input)
-        return self.metrics(predictions, data.answer)
 
     def predict(self, data):
         nn_input = self._network_input_(data)
