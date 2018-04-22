@@ -1,13 +1,12 @@
+import os
 import logging
 import logging.config
+
 from datetime import datetime
 
-import os
-
-from experiments.evaluation import evaluate_results, make_result_frame, classification_report
-from experiments.model_selection import cv_predict
+from pypagai.experiments import core
+from pypagai.experiments.evaluation import evaluate_results, make_result_frame, classification_report
 from sacred import Experiment
-from sklearn.cross_validation import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
 from sklearn.svm import SVC
@@ -18,10 +17,7 @@ from pypagai.models.model_lstm import SimpleLSTM
 from pypagai.preprocessing.read_data import data_ingredient
 from pypagai.util.class_loader import DatasetLoader, ModelLoader
 
-path_template = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)),
-    'report_template.ipynb'
-)
+path_template = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'report_template.ipynb')
 
 ex = Experiment('PypagAI', ingredients=[data_ingredient, model_ingredient])
 ex.observers.append(PypagAIFileStorageObserver.create('results/', template=path_template))
@@ -41,6 +37,7 @@ def default_framework_config():
 
     logging.Formatter(framework_cfg['LOG_FORMAT'])
     LOG.setLevel(framework_cfg['LOG_LEVEL'])
+    ex.logger = LOG
 
 
 @ex.config
@@ -136,7 +133,7 @@ def simple_lstm(model_cfg):
 
 
 @ex.automain
-def run(_run, framework_cfg):
+def run(_run):
     """
     This main use sacred experiments framework. To show all parameters type:
 
@@ -144,31 +141,28 @@ def run(_run, framework_cfg):
     """
     LOG.info("[START] Experiments")
 
-    train, validation = read_data()
+    train, test = read_data()
     estimator = read_model()
 
-    # cross-validation prediction on training set
-    val_results = cv_predict(estimator, train)
+    estimator.train(train)
 
-    prediction = estimator.predict(validation)
+    # Test estimators
+    test_pred = estimator.predict(test)
+    test_results = make_result_frame(test_pred, test.answer)
 
-    val_report = classification_report(val_results.y_true, val_results.y_pred)
-    test_report = classification_report(prediction, validation.answer)
-    test_results = make_result_frame(prediction, validation.answer)
-
-    metrics = ['f1_macro', 'f1_micro', 'recall', 'precision']
-
-    # will be storage
+    # Print results
     _run.info = {
         'raw_results': {
-            'validation': val_results,
             'test': test_results
-        }
+        },
+
+        'report': {
+            'test': classification_report(test_pred, test.answer)
+        },
+
+        'metrics': {
+            'test': evaluate_results(test_results, metrics=['f1_macro', 'f1_micro', 'accuracy'])
+        },
     }
 
-    vis_frame = "{} Set Results:\n\n{}\n\nclassification report\n{}\n\n##########################################\n\n"
-
-    _run.run_logger.info(vis_frame.format("Validation", evaluate_results(val_results, metrics=metrics), val_report))
-    _run.run_logger.info(vis_frame.format("Test", evaluate_results(test_results, metrics=metrics), test_report))
-
-    return estimator
+    # return estimator

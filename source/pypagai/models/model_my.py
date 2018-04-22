@@ -82,7 +82,7 @@ class ConvRN(KerasModel):
         self._model.compile(optimizer=Adam(clipnorm=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
 
-class ReluN2NMemory(KerasModel):
+class ReLUN2NMemory(KerasModel):
     """
     Add two layers inspired n the
     """

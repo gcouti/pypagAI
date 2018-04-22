@@ -66,7 +66,8 @@ class SciKitModel(BaseModel):
 
     def predict(self, data):
         trans = self._network_input_(self._le.transform, data)
-        return self._model.predict(trans)
+        pred = self._model.predict(trans)
+        return np.argsort(pred)[:, ::-1][:, 0]
 
     @staticmethod
     def _network_input_(func, data):

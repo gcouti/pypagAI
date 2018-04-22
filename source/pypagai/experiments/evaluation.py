@@ -1,9 +1,13 @@
 # aux pkg imports
+import logging
+
 import numpy as np
 import pandas as pd
 
-# scikit imports
-from sklearn.metrics import get_scorer, precision_recall_fscore_support
+# sci-kit imports
+from sklearn.metrics import get_scorer, precision_recall_fscore_support, accuracy_score, f1_score
+
+LOG = logging.getLogger('pypagai-logger')
 
 
 def metrics(pred, true):
