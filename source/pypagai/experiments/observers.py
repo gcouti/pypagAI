@@ -24,7 +24,7 @@ class PypagAIFileStorageObserver(FileStorageObserver):
         """
         for k, df in dictionary.items():
             df.to_csv(
-                os.path.join(self.dir, 'raw_{}_{}.csv'.format(name, k)),
+                os.path.join(self.dir, '{}-{}.csv'.format(name, k)),
                 quoting=csv.QUOTE_NONNUMERIC,
                 index=False
             )
@@ -44,6 +44,11 @@ class PypagAIFileStorageObserver(FileStorageObserver):
 
     def heartbeat_event(self, info, captured_out, beat_time, result):
 
+        for column in ['report', 'metrics']:
+            if column in info and 'test' in info[column]:
+                vis_frame = "\n\n{}\n\n##########################################\n"
+                LOG.info(vis_frame.format(info[column]['test']))
+
         for column in ['raw_results', 'report', 'metrics']:
             if column in info:
                 self.write_file(column, info[column])
@@ -61,28 +66,3 @@ class PypagAIFileStorageObserver(FileStorageObserver):
 
         if self.persis_model:
             ModelDumper(result).dump(os.path.join(self.dir, 'model.pkl'))
-
-
-        #
-        # if 'report' in info:
-        #     report_csv
-        #     vis_frame = "{} Set Results:\n\n{}\n\nclassification report\n{}\n\n##########################################\n\n"
-        #     _run.run_logger.info(vis_frame.format("Test", evaluate_results(test_results, metrics=metrics), test_report))
-
-
-            # r = {
-            #     'model': model.__name__,
-            #     'acc': acc,
-            #     'f1': f1,
-            #     'db': db_cfg['reader'].ALIAS,
-            #     'db_parameters': json.dumps(
-            #         {k: v if isinstance(v, str) or isinstance(v, int) or isinstance(v, float) else v.__name__ for
-            #          k, v in dataset_cfg.items()}),
-            #     'model_cfg': json.dumps(
-            #         {k: v if isinstance(v, str) or isinstance(v, int) or isinstance(v, float) else v.__name__ for
-            #          k, v in dataset_cfg.items()}),
-            # }
-            #
-            # results.append(r)
-            # df = pd.DataFrame(results)
-            # df.to_csv('result.csv', sep=';', index=False)

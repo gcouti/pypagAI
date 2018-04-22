@@ -9,7 +9,7 @@ from pypagai.experiments.evaluation import evaluate_results, make_result_frame, 
 from sacred import Experiment
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 
 from pypagai.experiments.observers import PypagAIFileStorageObserver
 from pypagai.models.base import model_ingredient, SciKitModel
@@ -93,9 +93,10 @@ def svm_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(SVC(), param_grid={
-        'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
-        'gamma': [1e-3, 1e-4],
-        'C': [1, 10, 100, 1000]
+        'kernel': ['linear'],
+        # 'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
+        # 'gamma': [1e-3, 1e-4],
+        # 'C': [1, 10, 100, 1000]
     })
 
 

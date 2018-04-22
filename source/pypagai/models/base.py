@@ -60,14 +60,14 @@ class SciKitModel(BaseModel):
     def train(self, data, valid=None):
         self._le.fit(np.array([data.answer]).T)
         trans = self._network_input_(self._le.fit_transform, data)
-        answer = self._le.transform(np.array([data.answer]).T)
+        # answer = self._le.transform(np.array([data.answer]).T)
 
-        self._model.fit(trans, answer)
+        self._model.fit(trans, data.answer)
 
     def predict(self, data):
         trans = self._network_input_(self._le.transform, data)
         pred = self._model.predict(trans)
-        return np.argsort(pred)[:, ::-1][:, 0]
+        return pred
 
     @staticmethod
     def _network_input_(func, data):
