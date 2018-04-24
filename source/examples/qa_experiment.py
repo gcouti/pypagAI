@@ -82,10 +82,10 @@ def svm_config():
 
     model_cfg = {}
     model_cfg.update(model.default_config())
-    model_cfg['model'] = GridSearchCV(SVC(), param_grid={
+    model_cfg['model'] = GridSearchCV(SVC(), n_jobs=-1, param_grid={
         'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
         'gamma': [1e-3, 1e-4],
-        'C': [1, 10, 100, 1000]
+        'C': [1, 10, 100, 1000],
     })
 
 
@@ -95,14 +95,14 @@ def rf_config():
 
     model_cfg = {}
     model_cfg.update(model.default_config())
-    model_cfg['model'] = GridSearchCV(RandomForestClassifier(), param_grid={
+    model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1,  param_grid={
         "max_depth": [3, 10, 100, None],
         "max_features": [1, 3, 10],
         "min_samples_split": [2, 3, 10],
         "min_samples_leaf": [1, 3, 10],
         "bootstrap": [True, False],
         "n_estimators": [50, 100, 200, 300],
-        "criterion": ["gini", "entropy"]
+        "criterion": ["gini", "entropy"],
     })
 
 
