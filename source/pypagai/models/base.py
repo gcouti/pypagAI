@@ -127,23 +127,25 @@ class KerasModel(BaseNeuralNetworkModel):
             if self._verbose:
                 LOG.debug("Epoch %i/%i" % (epoch+1, self._epochs))
 
+            ep = (self._epochs - epoch) if (self._epochs - epoch) < self._log_every_ else self._log_every_
             self._model.fit(nn_input, data.answer,
                             callbacks=[callback] if self._keras_log else [],
                             verbose=self._verbose,
                             batch_size=self._batch_size,
-                            epochs=self._log_every_)
+                            epochs=ep)
 
-            acc, f1 = self.valid(valid)
-            LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
-
-            # TODO: check if it is possible to done that with capture from sacred
-            if acc > self._maximum_acc:
-                LOG.info("Complete before epochs finished %f", acc)
-                break
+            # acc, f1 = self.valid(valid)
+            # LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
+            #
+            # # TODO: check if it is possible to done that with capture from sacred
+            # if acc > self._maximum_acc:
+            #     LOG.info("Complete before epochs finished %f", acc)
+            #     break
 
     def predict(self, data):
         nn_input = self._network_input_(data)
-        return self._model.predict(nn_input, verbose=self._verbose)
+        pred = self._model.predict(nn_input, verbose=self._verbose)
+        return np.argsort(pred)[:, ::-1][:, 0]
 
 
 class TensorFlowModel(BaseNeuralNetworkModel):

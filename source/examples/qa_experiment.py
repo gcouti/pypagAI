@@ -76,16 +76,6 @@ def read_model(model, model_cfg):
     return model(model_cfg)
 
 
-# @ex.named_config
-# def baby_babi_config():
-#     dbs = [{'reader': BaBIDataset, 'task': t, 'size': ''} for t in range(1, 2)]
-#
-#
-# @ex.named_config
-# def babi_config():
-#     dbs = [{'reader': BaBIDataset, 'task': t} for t in range(1, 20)]
-
-
 @ex.named_config
 def svm_config():
     model = SciKitModel
@@ -93,10 +83,9 @@ def svm_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(SVC(), param_grid={
-        'kernel': ['linear'],
-        # 'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
-        # 'gamma': [1e-3, 1e-4],
-        # 'C': [1, 10, 100, 1000]
+        'kernel': ['rbf', 'linear', 'poly', 'sigmoid', 'precomputed'],
+        'gamma': [1e-3, 1e-4],
+        'C': [1, 10, 100, 1000]
     })
 
 
@@ -107,18 +96,22 @@ def rf_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(RandomForestClassifier(), param_grid={
-        # "max_depth": [3, 10, 100, None],
-        # "max_features": [1, 3, 10],
-        # "min_samples_split": [2, 3, 10],
-        # "min_samples_leaf": [1, 3, 10],
-        # "bootstrap": [True, False],
-        # "n_estimators": [50, 100, 200, 300],
-        # "criterion": ["gini", "entropy"]
+        "max_depth": [3, 10, 100, None],
+        "max_features": [1, 3, 10],
+        "min_samples_split": [2, 3, 10],
+        "min_samples_leaf": [1, 3, 10],
+        "bootstrap": [True, False],
+        "n_estimators": [50, 100, 200, 300],
+        "criterion": ["gini", "entropy"]
     })
 
 
 @ex.named_config
-def simple_lstm(model_cfg):
+def lstm_config():
+    model = SimpleLSTM
+
+    model_cfg = {}
+    model_cfg.update(model.default_config())
     model_cfg['model'] = SimpleLSTM
         #     # 'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
         #     'model': EmbedLSTM,
