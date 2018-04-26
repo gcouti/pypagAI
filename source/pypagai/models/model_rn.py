@@ -78,21 +78,19 @@ class RN(KerasModel):
         relations = []
         for fact_object_1 in objects:
             for fact_object_2 in objects:
-                r = concatenate([fact_object_1, fact_object_2, question_encoder])
-                response = Dense(256, activation='relu')(r)
-                response = Dropout(0.3)(response)
-                response = Dense(256, activation='relu')(response)
-                response = Dropout(0.3)(response)
-                response = Dense(256, activation='relu')(response)
-                response = Dropout(0.3)(response)
-                response = Dense(256, activation='relu')(response)
-                response = Dropout(0.3)(response)
+                relations.append(concatenate([fact_object_1, fact_object_2, question_encoder]))
 
-                relations.append(response)
+        relations = concatenate(relations)
+        response = Dense(256, activation='relu')(relations)
+        response = Dropout(0.3)(response)
+        response = Dense(256, activation='relu')(response)
+        response = Dropout(0.3)(response)
+        response = Dense(256, activation='relu')(response)
+        response = Dropout(0.3)(response)
+        response = Dense(256, activation='relu')(response)
+        response = Dropout(0.3)(response)
 
-        combined_relation = add(relations)
-
-        response = Dense(256, activation='relu')(combined_relation)
+        response = Dense(256, activation='relu')(response)
         response = Dense(512, activation='relu')(response)
         response = Dense(self._vocab_size, activation='softmax')(response)
 

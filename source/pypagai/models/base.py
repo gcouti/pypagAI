@@ -1,11 +1,12 @@
 import keras
 import logging
 import numpy as np
+from keras.callbacks import Callback, EarlyStopping
 
 from sacred import Ingredient
 from sklearn import preprocessing
 
-callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_graph=True, write_images=True)
+tb_callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_graph=True, write_images=True)
 
 LOG = logging.getLogger('pypagai-logger')
 model_ingredient = Ingredient('model_default_cfg')
@@ -35,8 +36,11 @@ class BaseModel:
     @staticmethod
     def default_config():
         return {
-            'maximum_acc': .95,
+            'maximum_acc': 1,
         }
+
+    def print(self):
+        LOG.info(self._model)
 
     def train(self, data, valid=None):
         raise Exception("Not implemented")
@@ -83,16 +87,20 @@ class BaseNeuralNetworkModel(BaseModel):
 
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
-        self._log_every_ = model_cfg['log_every']
+
         self._epochs = model_cfg['epochs']
+        self._patience = model_cfg['patience']
         self._keras_log = model_cfg['keras_log']
+        self._log_every = model_cfg['log_every']
         self._batch_size = model_cfg['batch_size']
 
     @staticmethod
     def default_config():
         config = BaseModel.default_config()
-        config['log_every'] = 50
+
         config['epochs'] = 1000
+        config['patience'] = 10
+        config['log_every'] = 50
         config['keras_log'] = False
         config['batch_size'] = 32
 
@@ -110,6 +118,36 @@ class BaseNeuralNetworkModel(BaseModel):
             return [data.context, data.query]
 
 
+class TestCallback(Callback):
+
+    def __init__(self, test_data, maximum=1.0, log_every=50, verbose=False):
+        super().__init__()
+        self._test_data = test_data
+        self._maximum = maximum
+        self._verbose = verbose
+        self._log_every = log_every
+        self._stopped_epoch = 0
+
+    def on_epoch_end(self, epoch, logs=None):
+
+        if epoch % self._log_every != 0 or epoch == 0:
+            return
+
+        x, y = self._test_data
+        loss, acc = self.model.evaluate(x, y, verbose=self._verbose)
+
+        if self._verbose:
+            LOG.info('[TEST SET] epoch: {} - loss: {}, acc: {}\n'.format(epoch, loss, acc))
+
+        if acc > self._maximum:
+            self._stopped_epoch = epoch
+            self.model.stop_training = True
+
+    def on_train_end(self, logs=None):
+        if self._stopped_epoch > 0 and self._verbose:
+            LOG.debug('Epoch %05d: early stopping' % (self._stopped_epoch + 1))
+
+
 class KerasModel(BaseNeuralNetworkModel):
     """
     https://github.com/xkortex/Siraj_Chatbot_Challenge
@@ -122,25 +160,21 @@ class KerasModel(BaseNeuralNetworkModel):
         Train models with neural network inputs "story" and "question" with the expected result "answer"
         """
         nn_input = self._network_input_(data)
-        for epoch in range(1, self._epochs, self._log_every_):
+        nn_input_test = self._network_input_(valid)
 
-            if self._verbose:
-                LOG.debug("Epoch %i/%i" % (epoch+1, self._epochs))
+        cb = [EarlyStopping(patience=self._patience)]
+        cb += [TestCallback((nn_input_test, valid.answer),
+                            self._maximum_acc,
+                            log_every=self._log_every,
+                            verbose=self._verbose)]
+        cb += [tb_callback] if self._keras_log else []
 
-            ep = (self._epochs - epoch) if (self._epochs - epoch) < self._log_every_ else self._log_every_
-            self._model.fit(nn_input, data.answer,
-                            callbacks=[callback] if self._keras_log else [],
-                            verbose=self._verbose,
-                            batch_size=self._batch_size,
-                            epochs=ep)
-
-            # acc, f1 = self.valid(valid)
-            # LOG.info("Epoch %i/%i, acc: %f f1: %f" % (epoch+1, self._epochs, acc, f1))
-            #
-            # # TODO: check if it is possible to done that with capture from sacred
-            # if acc > self._maximum_acc:
-            #     LOG.info("Complete before epochs finished %f", acc)
-            #     break
+        self._model.fit(nn_input, data.answer,
+                        validation_split=0.2,
+                        callbacks=cb,
+                        verbose=self._verbose,
+                        batch_size=self._batch_size,
+                        epochs=self._epochs)
 
     def predict(self, data):
         nn_input = self._network_input_(data)
@@ -155,3 +189,5 @@ class TensorFlowModel(BaseNeuralNetworkModel):
 
     def predict(self, data):
         pass
+
+

@@ -106,24 +106,24 @@ def rf_config():
     })
 
 
-@ex.named_config
-def lstm_config():
-    model = SimpleLSTM
-
-    model_cfg = {}
-    model_cfg.update(model.default_config())
-    model_cfg['model'] = SimpleLSTM
-        #     # 'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
-        #     'model': EmbedLSTM,
-        #     # 'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
-        #     'model': EncoderModel,
-        #     'model': N2NMemory,
-        #     'model': RN,
-        #     'reader_cfg': {
-        #         'strip_sentences': True
-        #     }
-        #     'model': RNNModel,
-        #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
+# @ex.named_config
+# def lstm_config():
+#     model = SimpleLSTM
+#
+#     model_cfg = {}
+#     model_cfg.update(model.default_config())
+#     model_cfg['model'] = SimpleLSTM
+#         #     # 'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
+#         #     'model': EmbedLSTM,
+#         #     # 'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
+#         #     'model': EncoderModel,
+#         #     'model': N2NMemory,
+#         #     'model': RN,
+#         #     'reader_cfg': {
+#         #         'strip_sentences': True
+#         #     }
+#         #     'model': RNNModel,
+#         #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
 
 
 @ex.automain
@@ -137,8 +137,8 @@ def run(_run):
 
     train, test = read_data()
     estimator = read_model()
-
-    estimator.train(train)
+    estimator.print()
+    estimator.train(train, test)
 
     # Test estimators
     test_pred = estimator.predict(test)
