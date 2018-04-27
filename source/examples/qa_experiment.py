@@ -4,6 +4,8 @@ import logging.config
 
 from datetime import datetime
 
+import pandas as pd
+
 from pypagai.experiments import core
 from pypagai.experiments.evaluation import evaluate_results, make_result_frame, classification_report
 from sacred import Experiment
@@ -96,13 +98,13 @@ def rf_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1,  param_grid={
-        "max_depth": [3, 10, 100, None],
-        "max_features": [1, 3, 10],
-        "min_samples_split": [2, 3, 10],
-        "min_samples_leaf": [1, 3, 10],
-        "bootstrap": [True, False],
-        "n_estimators": [50, 100, 200, 300],
-        "criterion": ["gini", "entropy"],
+        # "max_depth": [3, 10, 100, None],
+        # "max_features": [1, 3, 10],
+        # "min_samples_split": [2, 3, 10],
+        # "min_samples_leaf": [1, 3, 10],
+        # "bootstrap": [True, False],
+        # "n_estimators": [50, 100, 200, 300],
+        # "criterion": ["gini", "entropy"],
     })
 
 
@@ -138,7 +140,7 @@ def run(_run):
     train, test = read_data()
     estimator = read_model()
     estimator.print()
-    estimator.train(train, test)
+    report = estimator.train(train, test)
 
     # Test estimators
     test_pred = estimator.predict(test)
@@ -151,6 +153,7 @@ def run(_run):
         },
 
         'report': {
+            # 'train': report,
             'test': classification_report(test_pred, test.answer)
         },
 

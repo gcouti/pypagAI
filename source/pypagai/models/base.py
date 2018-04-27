@@ -1,6 +1,7 @@
 import keras
 import logging
 import numpy as np
+import pandas as pd
 from keras.callbacks import Callback, EarlyStopping
 
 from sacred import Ingredient
@@ -175,6 +176,8 @@ class KerasModel(BaseNeuralNetworkModel):
                         verbose=self._verbose,
                         batch_size=self._batch_size,
                         epochs=self._epochs)
+
+        return pd.DataFrame(self._model.history.history)
 
     def predict(self, data):
         nn_input = self._network_input_(data)
