@@ -99,11 +99,11 @@ class BaseNeuralNetworkModel(BaseModel):
     def default_config():
         config = BaseModel.default_config()
 
-        config['epochs'] = 1000
-        config['patience'] = 10
-        config['log_every'] = 50
+        config['epochs'] = 1
+        config['patience'] = 25
+        config['log_every'] = 10
         config['keras_log'] = False
-        config['batch_size'] = 32
+        config['batch_size'] = 1024
 
         return config
 
@@ -171,7 +171,7 @@ class KerasModel(BaseNeuralNetworkModel):
         cb += [tb_callback] if self._keras_log else []
 
         self._model.fit(nn_input, data.answer,
-                        validation_split=0.2,
+                        # validation_split=0.2,
                         callbacks=cb,
                         verbose=self._verbose,
                         batch_size=self._batch_size,

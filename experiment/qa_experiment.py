@@ -98,34 +98,7 @@ def rf_config():
     model_cfg = {}
     model_cfg.update(model.default_config())
     model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1,  param_grid={
-        # "max_depth": [3, 10, 100, None],
-        # "max_features": [1, 3, 10],
-        # "min_samples_split": [2, 3, 10],
-        # "min_samples_leaf": [1, 3, 10],
-        # "bootstrap": [True, False],
-        # "n_estimators": [50, 100, 200, 300],
-        # "criterion": ["gini", "entropy"],
     })
-
-
-# @ex.named_config
-# def lstm_config():
-#     model = SimpleLSTM
-#
-#     model_cfg = {}
-#     model_cfg.update(model.default_config())
-#     model_cfg['model'] = SimpleLSTM
-#         #     # 'parameters': [{'batch_size': 1024, 'hidden': h} for h in [32, 64, 128, 256]]
-#         #     'model': EmbedLSTM,
-#         #     # 'parameters': [{'hidden': h} for h in [32, 64, 128, 256]]
-#         #     'model': EncoderModel,
-#         #     'model': N2NMemory,
-#         #     'model': RN,
-#         #     'reader_cfg': {
-#         #         'strip_sentences': True
-#         #     }
-#         #     'model': RNNModel,
-#         #     'parameters': [{'hidden': h}for h in [32, 64, 128, 256]]
 
 
 @ex.automain
@@ -153,7 +126,7 @@ def run(_run):
         },
 
         'report': {
-            # 'train': report,
+            'train': report,
             'test': classification_report(test_pred, test.answer)
         },
 
@@ -162,4 +135,4 @@ def run(_run):
         },
     }
 
-    # return estimator
+    return estimator._model
