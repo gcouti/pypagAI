@@ -4,20 +4,19 @@
 PypagAI 
 =======
 
-PypagAI is a easy and fast framework experiment Question Answering (QA) problems
+PypagAI is a easy and fast framework to experiment Question Answering (QA) problems
 
 Why PypagAI?
 ============
 
-It was inspired on Facebook's dialog framework, [ParlAI](), but it is easier and faster to test models. 
-It is very easy to integrate new [Keras]() and [TensorFlow]() models
+PypagAI was inspired on Facebook's dialog framework, [ParlAI](), but it is easier and faster to test models. 
+It uses [Sacred]() as experiments backend and is very easy to integrate new [Keras]() and [TensorFlow]() models
 
-The framework uses [Sacred]() as experiments backend
 
 How to run
 ==========
 
-Easy and if you know Sacred it's easier!
+To run with default configurations 
 
 ```shell
 python -m experiment.qa_experiment -u
@@ -27,6 +26,19 @@ If you want list all available parameters just type
 
 ```shell
 python -m experiment.qa_experiment print_config
+```
+
+Changing the models
+
+```shell
+python -m experiment.qa_experiment with model_default_cfg.model=pypagai.models.model_rnn.RNNModel -u
+ 
+```
+
+Changing dataset
+
+```shell
+python -m experiment.qa_experiment with  dataset_cfg.task=3 -u
 ```
 
 You can also override the default experiment main and create your own flow. Just load data and model libraries. 
