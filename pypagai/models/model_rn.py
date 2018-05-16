@@ -1,15 +1,16 @@
 from __future__ import print_function
 
-from keras.layers import Input, Embedding, LSTM, Reshape, concatenate, add, regularizers, Bidirectional
+from keras.layers import Input, Embedding, LSTM, Reshape, concatenate, regularizers, Bidirectional, Conv1D, \
+    MaxPooling1D, Permute, Conv2D, MaxPooling2D, SimpleRNN
 from keras.layers.core import Dense, Dropout, Lambda
 from keras.models import Model
 from keras.optimizers import Adam
+from keras.backend import stack
 
 from pypagai.models.base import KerasModel
 
 
 class RN(KerasModel):
-
     """
     Implementation of Relational Neural Network:
 
@@ -43,6 +44,7 @@ class RN(KerasModel):
     https://github.com/sujitpal/dl-models-for-qa
 
     """
+
     @staticmethod
     def default_config():
         config = KerasModel.default_config()
@@ -62,37 +64,42 @@ class RN(KerasModel):
         question = Input((self._query_maxlen,), name='question')
 
         embedded = Embedding(self._vocab_size, EMBED_SIZE)(story)
-        embedded = Reshape((self._sentences_maxlen, EMBED_SIZE * self._story_maxlen,))(embedded)
-        story_encoder = Bidirectional(LSTM(LSTM_UNITS, recurrent_regularizer=regularizers.l2(1e-4), recurrent_dropout=0.25,
-                                           implementation=2, return_sequences=True))(embedded)
+        embedded = Reshape((self._story_maxlen, EMBED_SIZE * self._sentences_maxlen,))(embedded)
+
+        story_encoder = Bidirectional(LSTM(LSTM_UNITS,
+                                           recurrent_regularizer=regularizers.l2(1e-4),
+                                           recurrent_dropout=0.3,
+                                           return_sequences=True))
+
+        story_encoder = story_encoder(embedded)
 
         embedded = Embedding(self._vocab_size, EMBED_SIZE)(question)
-        question_encoder = Bidirectional(LSTM(LSTM_UNITS, recurrent_regularizer=regularizers.l2(1e-4),
-                                              recurrent_dropout=0.25,  implementation=2))(embedded)
+        question_encoder = Bidirectional(LSTM(LSTM_UNITS,
+                                              recurrent_regularizer=regularizers.l2(1e-4),
+                                              recurrent_dropout=0.3))
+        question_encoder = question_encoder(embedded)
 
         objects = []
-        for k in range(self._sentences_maxlen):
+        for k in range(self._story_maxlen):
             fact_object = Lambda(lambda x: x[:, k, :])(story_encoder)
             objects.append(fact_object)
 
         relations = []
         for fact_object_1 in objects:
             for fact_object_2 in objects:
-                r = concatenate([fact_object_1, fact_object_2, question_encoder])
-                response = Dense(256, activation='relu')(r)
-                response = Dropout(0.3)(response)
-                response = Dense(256, activation='relu')(response)
-                response = Dropout(0.3)(response)
-                response = Dense(256, activation='relu')(response)
-                response = Dropout(0.3)(response)
-                response = Dense(256, activation='relu')(response)
-                response = Dropout(0.3)(response)
+                relations.append(concatenate([fact_object_1, fact_object_2, question_encoder]))
 
-                relations.append(response)
+        relations = concatenate(relations)
+        response = Dense(256, activation='relu')(relations)
+        response = Dropout(0.5)(response)
+        response = Dense(256, activation='relu')(response)
+        response = Dropout(0.5)(response)
+        response = Dense(256, activation='relu')(response)
+        response = Dropout(0.5)(response)
+        response = Dense(256, activation='relu')(response)
+        response = Dropout(0.5)(response)
 
-        combined_relation = add(relations)
-
-        response = Dense(256, activation='relu')(combined_relation)
+        response = Dense(256, activation='relu')(response)
         response = Dense(512, activation='relu')(response)
         response = Dense(self._vocab_size, activation='softmax')(response)
 

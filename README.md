@@ -1,30 +1,32 @@
 [![Coverage Status](https://coveralls.io/repos/github/gcouti/qa/badge.svg?branch=master)](https://coveralls.io/github/gcouti/qa?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-# Question Answering Problem
+PypagAI 
+=======
 
-Experiments with several Neural Networks to solve question answering QA problem.
+PypagAI is a easy and fast framework experiment Question Answering (QA) problems
 
-## What is a Question Answering problem
+Why PypagAI?
+============
 
-Processing and reasoning information is the main characteristic observed in the behavior of intelligent species. However, it is a hard task to transpose this to computer logic, and it has been proven difficult for machine learning algorithms to learn from it. Regardless, some improvement has been made with deep learning models, which encourages us to continue exploring such problems, although a lot of work is required to achieve satisfactory results. This work attempts to explore a set of neural networks which showed good results reasoning problems. 
+It was inspired on Facebook's dialog framework, [ParlAI](), but it is easier and faster to test models. 
+It is very easy to integrate new [Keras]() and [TensorFlow]() models
 
-Creating a way for machines to reason and understand context is a challenge for Computer Science. The solution for this     problem has a crucial importance in order to build smart conversational pypagAI.agents and could be a large step to singularity. As much as we already have pypagAI.agents that are capable to dialog, they have not been sufficiently smart to pass the Turing Test.
+The framework uses [Sacred]() as experiments backend
 
-## Get start
+How to run
+==========
 
-First of all, you must run setup.sh to create enviroment varibles
+Easy and if you know Sacred it's easier!
 
+```shell
+python -m experiment.qa_experiment -u
 ```
-setup.sh
+
+If you want list all available parameters just type
+
+```shell
+python -m experiment.qa_experiment print_config
 ```
 
-## Results
-
-* **LSTM**
-* **IR** 
-
-|Tasks  | LSTM | IR  |
-| ---   |  :-: | :-: |
-|Task01 |  0.0 | 0.0 |
-
+You can also override the default experiment main and create your own flow. Just load data and model libraries. 

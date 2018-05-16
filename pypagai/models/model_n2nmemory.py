@@ -1,5 +1,7 @@
 from keras import Input, Model, Sequential
 from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense
+from keras.optimizers import Adam
+
 from pypagai.models.base import KerasModel
 
 
@@ -115,3 +117,4 @@ class N2NMemory(KerasModel):
         # we output a probability distribution over the vocabulary
 
         return Activation(activation)(answer)
+

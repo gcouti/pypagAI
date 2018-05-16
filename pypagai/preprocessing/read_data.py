@@ -6,6 +6,7 @@ import numpy as np
 from nltk import flatten
 from sacred import Ingredient
 from keras.preprocessing.sequence import pad_sequences
+from sklearn.utils import safe_indexing
 
 from pypagai.preprocessing.parser import SimpleParser
 
@@ -27,9 +28,24 @@ class ProcessedData:
     """
     Class to store information from dataset
     """
-    context = None
-    query = None
-    answer = None
+    def __init__(self):
+        self.query = None
+        self.answer = None
+        self.context = None
+
+    def filter(self, indexes):
+        """
+        Filter data with indexes
+
+        :param indexes:
+        :return: new instance of a processed data
+        """
+        d = ProcessedData()
+        d.query = safe_indexing(self.query, indexes)
+        d.answer = safe_indexing(self.answer, indexes)
+        d.context = safe_indexing(self.context, indexes)
+
+        return d
 
 
 class DataReader:
