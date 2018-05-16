@@ -1,21 +1,16 @@
-import os
 import logging
 import logging.config
-
+import os
 from datetime import datetime
 
-import pandas as pd
-
-from pypagai.experiments import core
-from pypagai.experiments.evaluation import evaluate_results, make_result_frame, classification_report
 from sacred import Experiment
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.grid_search import GridSearchCV
-from sklearn.svm import SVC, LinearSVC
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
 
+from pypagai.experiments.evaluation import evaluate_results, make_result_frame, classification_report
 from pypagai.experiments.observers import PypagAIFileStorageObserver
 from pypagai.models.base import model_ingredient, SciKitModel
-from pypagai.models.model_lstm import SimpleLSTM
 from pypagai.preprocessing.read_data import data_ingredient
 from pypagai.util.class_loader import DatasetLoader, ModelLoader
 
@@ -113,6 +108,7 @@ def run(_run):
     train, test = read_data()
     estimator = read_model()
     estimator.print()
+
     report = estimator.train(train, test)
 
     # Test estimators

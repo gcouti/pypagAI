@@ -25,6 +25,7 @@ def default_model_configuration():
 class BaseModel:
 
     def __init__(self, model_cfg):
+
         self._model = None
         self._verbose = model_cfg['verbose'] if 'verbose' in model_cfg else False
 
@@ -99,11 +100,11 @@ class BaseNeuralNetworkModel(BaseModel):
     def default_config():
         config = BaseModel.default_config()
 
-        config['epochs'] = 1
+        config['epochs'] = 1000
         config['patience'] = 25
-        config['log_every'] = 10
+        config['log_every'] = 50
         config['keras_log'] = False
-        config['batch_size'] = 1024
+        config['batch_size'] = 32
 
         return config
 
@@ -192,5 +193,3 @@ class TensorFlowModel(BaseNeuralNetworkModel):
 
     def predict(self, data):
         pass
-
-

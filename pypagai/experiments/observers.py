@@ -11,7 +11,7 @@ LOG = logging.getLogger('pypagai-logger')
 class PypagAIFileStorageObserver(FileStorageObserver):
 
     def __init__(self, basedir, resource_dir=None, source_dir=None, template=None, priority=20):
-        super().__init__(basedir, resource_dir, source_dir, template, priority)
+        super(PypagAIFileStorageObserver, self).__init__(basedir, resource_dir, source_dir, template, priority)
         self.basedir = '/tmp/dummy-folder' if not basedir else basedir
         self.persis_model = False
 
