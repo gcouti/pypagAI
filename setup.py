@@ -18,7 +18,7 @@ setup(
         'examples',
     )),
     install_requires=[
-        'numpy==1.14',
+        'numpy==1.13.3',
         'Pillow==4.3.0',
         'Keras==2.1.5',
         'tensorflow-gpu==1.7.0',
