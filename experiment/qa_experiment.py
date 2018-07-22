@@ -130,5 +130,3 @@ def run(_run):
             'test': evaluate_results(test_results, metrics=['f1_macro', 'f1_micro', 'accuracy'])
         },
     }
-
-    return estimator._model
