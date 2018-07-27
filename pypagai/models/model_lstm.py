@@ -95,13 +95,13 @@ class ConvLSTM(KerasModel):
         eb_story = Convolution1D(64, 3, padding='same')(eb_story)
         eb_story = Convolution1D(32, 3, padding='same')(eb_story)
         eb_story = Convolution1D(16, 3, padding='same')(eb_story)
-        eb_story = Flatten()(eb_story)
+        # eb_story = Flatten()(eb_story)
 
         eb_question = Embedding(self._vocab_size, 64)(question)
         eb_question = Convolution1D(64, 3, padding='same')(eb_question)
         eb_question = Convolution1D(32, 3, padding='same')(eb_question)
         eb_question = Convolution1D(16, 3, padding='same')(eb_question)
-        eb_question = Flatten()(eb_question)
+        # eb_question = Flatten()(eb_question)
 
         conc = concatenate([eb_story, eb_question], axis=1)
 
