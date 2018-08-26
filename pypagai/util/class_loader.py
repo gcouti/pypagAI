@@ -17,7 +17,6 @@ class ClassLoader:
             if class_path in self._aliases_():
                 class_path = self._aliases_()[class_path]
 
-
         return locate(class_path)
 
 
@@ -41,4 +40,5 @@ class DatasetLoader(ClassLoader):
     def _aliases_(self):
         return {
             'babi': 'pypagai.preprocessing.dataset_babi.BaBIDataset',
+            'squad': 'pypagai.preprocessing.dataset_squad.SQuADataset',
         }

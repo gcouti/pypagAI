@@ -1,10 +1,8 @@
-from keras import Input
-from keras.layers import Embedding, Dropout
-
-from pypagai.models.base import KerasModel
+import tensorflow as tf
+from pypagai.models.base import TensorFlowModel
 
 
-class DMN(KerasModel):
+class DMN(TensorFlowModel):
     """
         Dynamic Memory Networks (March 2016 Version - https://arxiv.org/abs/1603.01417)
 
@@ -14,29 +12,44 @@ class DMN(KerasModel):
         Inspired on: https://github.com/patrickachase/dynamic-memory-networks/blob/master/python/dynamic_memory_network.py
         https://github.com/YerevaNN/Dynamic-memory-networks-in-Theano/blob/master/dmn_basic.py
     """
+
     @staticmethod
     def default_config():
-        config = KerasModel.default_config()
+        config = TensorFlowModel.default_config()
         config['hidden'] = 50
 
         return config
 
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
+        """
 
-        story_maxlen = self._story_maxlen
-        query_maxlen = self._query_maxlen
-        vocab_size = self._vocab_size
+        :param model_cfg:
+        """
 
-        embed_size = model_cfg['hidden']
+        self._story = tf.placeholder("float", [None, self._story_maxlen], name='story')
+        self._question = tf.placeholder("float", [None, self._query_maxlen], name='question')
+        self._answer = tf.placeholder("int64", [None, 1], name='answer')
 
-        sentence = Input(shape=(story_maxlen,), dtype='int32')
-        encoded_sentence = Embedding(vocab_size, embed_size)(sentence)
-        encoded_sentence = Dropout(0.3)(encoded_sentence)
+        # Parameters
+        learning_rate = 0.01
 
-        question = Input(shape=(query_maxlen,), dtype='int32')
-        encoded_question = Embedding(vocab_size, embed_size)(question)
-        encoded_question = Dropout(0.3)(encoded_question)
+        # Construct model
+        self._model = self.neural_net()
 
+        # Define loss and optimizer
+        labels = tf.reshape(self._answer, [-1, ])
+        self._loss_op = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self._model, labels=labels))
+        self._optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        self._train_op = self._optimizer.minimize(self._loss_op)
 
+        # Evaluate model (with test logits, for dropout to be disabled)
+        arg = tf.argmax(self._model, 1)
+        self._accuracy, _ = tf.metrics.accuracy(arg, labels)
 
+    def neural_net(self):
+
+        l1 = tf.layers.dense(self._story, 128)
+        l2 = tf.layers.dense(l1, 32)
+
+        return tf.layers.dense(l2, self._vocab_size)

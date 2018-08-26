@@ -1,4 +1,7 @@
 import keras
+import tensorflow as tf
+
+import math
 import logging
 import numpy as np
 import pandas as pd
@@ -18,14 +21,12 @@ def default_model_configuration():
     """
     Model configuration
     """
-    model = 'pypagai.models.model_lstm.SimpleLSTM'    # Path to the ML model
-    verbose = False                                    # True to print info about train
+    model = 'pypagai.models.model_lstm.SimpleLSTM'  # Path to the ML model
+    verbose = False  # True to print info about train
 
 
 class BaseModel:
-
     def __init__(self, model_cfg):
-
         self._model = None
         self._verbose = model_cfg['verbose'] if 'verbose' in model_cfg else False
 
@@ -52,7 +53,6 @@ class BaseModel:
 
 
 class SciKitModel(BaseModel):
-
     @staticmethod
     def default_config():
         config = BaseModel.default_config()
@@ -79,14 +79,13 @@ class SciKitModel(BaseModel):
     def _network_input_(func, data):
         trans = np.hstack([data.context, data.query])
         shape = trans.shape
-        trans = np.reshape(trans, (1, shape[0]*shape[1]))[0]
+        trans = np.reshape(trans, (1, shape[0] * shape[1]))[0]
         trans = func(trans)
         trans = np.reshape(trans, (shape[0], shape[1] * trans.shape[1]))
         return trans
 
 
 class BaseNeuralNetworkModel(BaseModel):
-
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
 
@@ -115,13 +114,12 @@ class BaseNeuralNetworkModel(BaseModel):
         :return: Expected format from keras models
         """
         if self._sentences_maxlen:
-            return [data.context, data.query, data.labels]
+            return [data.context, data.query, data.labels.T]
         else:
             return [data.context, data.query]
 
 
 class TestCallback(Callback):
-
     def __init__(self, test_data, maximum=1.0, log_every=50, verbose=False):
         super().__init__()
         self._test_data = test_data
@@ -188,8 +186,80 @@ class KerasModel(BaseNeuralNetworkModel):
 
 class TensorFlowModel(BaseNeuralNetworkModel):
 
+    def __init__(self, model_cfg):
+        super().__init__(model_cfg)
+
+        self._story = None
+        self._question = None
+        self._answer = None
+
+        self._train_op = None
+        self._loss_op = None
+        self._accuracy = None
+
     def train(self, data, valid=None):
-        pass
+
+        # Run the initializer
+        self._sess = tf.Session()
+        self._sess.run(tf.local_variables_initializer())
+        self._sess.run(tf.global_variables_initializer())
+
+        nn_input = self._network_input_(data)
+        nn_input_test = self._network_input_(valid)
+
+        for step in range(1, self._epochs + 1):
+
+            # Run optimization op (backprop)
+            size = len(nn_input[0])
+            for batch in range(math.ceil(size / self._batch_size)):
+                self._sess.run(self._train_op, feed_dict={
+                    self._story: nn_input[0][batch*self._batch_size:(batch+1)*self._batch_size],
+                    self._question: nn_input[1][batch*self._batch_size:(batch+1)*self._batch_size],
+                    self._answer: np.array([data.answer[batch*self._batch_size:(batch+1)*self._batch_size]]).T})
+
+            if step % self._log_every == 0 or step == 1:
+                # Calculate batch loss and accuracy
+                loss, acc = self._sess.run([self._loss_op, self._accuracy],
+                                           feed_dict={
+                                               self._story: nn_input[0],
+                                               self._question: nn_input[1],
+                                               self._answer: np.array([data.answer]).T
+                                           })
+                print("Step " + str(step) +
+                      ", Training Accuracy={:.3f}".format(acc) +
+                      ", Minibatch Loss={:.4f}".format(loss))
+
+        print("Optimization Finished!")
+
+        # Calculate accuracy for MNIST test images
+        print("Testing Accuracy:",
+              self._sess.run(self._accuracy, feed_dict={
+                  self._story: nn_input_test[0],
+                  self._question: nn_input_test[1],
+                  self._answer: np.array([valid.answer]).T
+              }))
+
+    def position_encoding(self, sentence_size, embedding_size):
+        """
+        Position Encoding described in section 4.1 [1]
+        """
+        encoding = np.ones((embedding_size, sentence_size), dtype=np.float32)
+        ls = sentence_size + 1
+        le = embedding_size + 1
+        for i in range(1, le):
+            for j in range(1, ls):
+                encoding[i - 1, j - 1] = (i - (embedding_size + 1) / 2) * (j - (sentence_size + 1) / 2)
+        encoding = 1 + 4 * encoding / embedding_size / sentence_size
+        # Make position encoding of time words identity to avoid modifying them
+        encoding[:, -1] = 1.0
+        return np.transpose(encoding)
 
     def predict(self, data):
-        pass
+        nn_input = self._network_input_(data)
+
+        feed_dict = {
+            self._story: nn_input[0],
+            self._question: nn_input[1],
+        }
+
+        return np.argmax(self._model.eval(feed_dict=feed_dict, session=self._sess), 1)

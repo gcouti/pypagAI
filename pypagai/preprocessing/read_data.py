@@ -75,7 +75,8 @@ class RemoteDataReader(DataReader):
                         s.append(word_idx[w])
                     facts.append(s)
                 labels.append(np.arange(len(facts)))
-                inputs.append(pad_sequences(facts, maxlen=sentences_maxlen))
+                pad = pad_sequences(facts, maxlen=sentences_maxlen)
+                inputs.append(pad)
             else:
                 inputs.append([word_idx[w] for w in story])
 
