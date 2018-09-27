@@ -114,7 +114,7 @@ class BaseNeuralNetworkModel(BaseModel):
         :return: Expected format from keras models
         """
         if self._sentences_maxlen:
-            return [data.context, data.query, data.labels.T]
+            return [data.context, data.query, data.labels]
         else:
             return [data.context, data.query]
 
@@ -253,6 +253,16 @@ class TensorFlowModel(BaseNeuralNetworkModel):
         # Make position encoding of time words identity to avoid modifying them
         encoding[:, -1] = 1.0
         return np.transpose(encoding)
+
+    # def positional_encoding(self):
+    #         D, M, N = self.params.embed_size, self.params.max_sent_size, self.params.batch_size
+    #     encoding = np.zeros([M, D])
+    #     for j in range(M):
+    #         for d in range(D):
+    #             encoding[j, d] = (1 - float(j)/M) - (float(d)/D)*(1 - 2.0*j/M)
+
+        # return encoding
+
 
     def predict(self, data):
         nn_input = self._network_input_(data)
