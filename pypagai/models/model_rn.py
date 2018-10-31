@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import itertools
 from keras.layers import Input, Embedding, LSTM, Reshape, concatenate, regularizers, Bidirectional, Conv1D, \
     MaxPooling1D, Permute, Conv2D, MaxPooling2D, SimpleRNN
 from keras.layers.core import Dense, Dropout, Lambda
@@ -85,9 +86,8 @@ class RN(KerasModel):
             objects.append(fact_object)
 
         relations = []
-        for fact_object_1 in objects:
-            for fact_object_2 in objects:
-                relations.append(concatenate([fact_object_1, fact_object_2, question_encoder]))
+        for fact_object_1, fact_object_2 in itertools.combinations(objects, 2):
+            relations.append(concatenate([fact_object_1, fact_object_2, question_encoder]))
 
         relations = concatenate(relations)
         response = Dense(256, activation='relu')(relations)

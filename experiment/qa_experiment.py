@@ -92,8 +92,7 @@ def rf_config():
 
     model_cfg = {}
     model_cfg.update(model.default_config())
-    model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1,  param_grid={
-    })
+    model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1,  param_grid={})
 
 
 @ex.automain

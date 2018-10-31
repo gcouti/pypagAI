@@ -13,6 +13,7 @@ class BaBIDataset(RemoteDataReader):
         super().__init__(reader_cfg, model_cfg)
         self.__size__ = '-' + reader_cfg['size'] if 'size' in reader_cfg else ''
         self.__task__ = reader_cfg['task']
+        self.__only_supporting__ = reader_cfg['only_supporting'] if 'only_supporting' in reader_cfg else False
         self.__strip_sentences__ = reader_cfg['strip_sentences'] if 'strip_sentences' in reader_cfg else False
 
     @staticmethod
@@ -98,7 +99,11 @@ class BaBIDataset(RemoteDataReader):
         challenge = challenges[str(self.__task__)]
 
         with tarfile.open(path) as tar:
-            train_stories = self.__get_stories__(tar.extractfile(challenge.format(self.__size__, 'train')))
-            test_stories = self.__get_stories__(tar.extractfile(challenge.format(self.__size__, 'test')))
+
+            ex_file = tar.extractfile(challenge.format(self.__size__, 'train'))
+            train_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
+
+            ex_file = tar.extractfile(challenge.format(self.__size__, 'test'))
+            test_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
 
         return train_stories, test_stories

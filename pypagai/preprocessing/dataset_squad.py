@@ -29,9 +29,14 @@ class SQuADataset(RemoteDataReader):
         data = []
         readed_data = json.load(open(f))
 
-        for data_dict in readed_data['data']:
+        for data_dict in readed_data['data'][0:100]:
             for paragraph in data_dict['paragraphs']:
-                story = self._parser_.tokenize(paragraph['context'])
+                if self.__strip_sentences__:
+                    story = []
+                    for txt in paragraph['context'].split('.'):
+                        story.append(self._parser_.tokenize(txt))
+                else:
+                    story = self._parser_.tokenize(paragraph['context'])
                 for qas in paragraph['qas']:
                     question = self._parser_.tokenize(qas['question'])
                     for ans in qas['answers']:
