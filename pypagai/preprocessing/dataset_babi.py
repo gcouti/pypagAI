@@ -13,6 +13,7 @@ class BaBIDataset(RemoteDataReader):
         super().__init__(reader_cfg, model_cfg)
         self.__size__ = '-' + reader_cfg['size'] if 'size' in reader_cfg else ''
         self.__task__ = reader_cfg['task']
+        self.__max_size__ = 20
         self.__only_supporting__ = reader_cfg['only_supporting'] if 'only_supporting' in reader_cfg else False
         self.__strip_sentences__ = reader_cfg['strip_sentences'] if 'strip_sentences' in reader_cfg else False
 
@@ -42,7 +43,9 @@ class BaBIDataset(RemoteDataReader):
                 substory = None
                 if only_supporting:
                     # Only select the related substory
-                    supporting = map(int, supporting.split())
+                    supporting = list(map(int, supporting.split()))
+                    story_range = list(range(len(story)))
+                    supporting = self.select_sentences(story_range, supporting, self.__max_size__)
                     substory = [story[i - 1] for i in supporting]
                 else:
                     # Provide all the substories
@@ -107,3 +110,15 @@ class BaBIDataset(RemoteDataReader):
             test_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
 
         return train_stories, test_stories
+
+    @staticmethod
+    def select_sentences(story, supporting, max_size):
+        story = set(story)
+        supporting = set(supporting)
+        story -= supporting
+        story = list(story)
+        story = story[::-1]
+        story = story[:max_size-len(supporting)]
+        story += supporting
+        story = sorted(story)
+        return list(story)
