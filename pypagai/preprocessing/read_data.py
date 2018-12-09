@@ -3,12 +3,12 @@ from __future__ import print_function
 import logging
 
 import numpy as np
+from keras.preprocessing.sequence import pad_sequences
 from nltk import flatten
 from sacred import Ingredient
-from keras.preprocessing.sequence import pad_sequences
-from sklearn.utils import safe_indexing
 
-from pypagai.preprocessing.parser import SimpleParser
+from pypagai.preprocessing.parser import NoStopWordsParser
+from pypagai.util.glove import GloveLoader
 
 LOG = logging.getLogger('pypagai-logger')
 data_ingredient = Ingredient('dataset_default_cfg')
@@ -20,32 +20,42 @@ def default_dataset_configuration():
     Dataset configuration
     """
     reader = 'pypagai.preprocessing.dataset_babi.BaBIDataset'  # Path to dataset reader
-    parser = SimpleParser    # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
+    parser = NoStopWordsParser    # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
     strip_sentences = False  # Property to split sentences
+    preload_embeddings = False
 
 
 class ProcessedData:
     """
     Class to store information from dataset
     """
+
     def __init__(self):
+        self.labels = None
+        self.context = None
         self.query = None
         self.answer = None
-        self.context = None
 
-    def filter(self, indexes):
-        """
-        Filter data with indexes
+    def __getitem__(self, key):
+        pd = ProcessedData()
+        pd.query = self.query[key]
+        pd.answer = self.answer[key]
+        pd.context = self.context[key]
+        pd.labels = self.labels[key] if len(self.labels) !=0 else []
+        return pd
 
-        :param indexes:
-        :return: new instance of a processed data
-        """
-        d = ProcessedData()
-        d.query = safe_indexing(self.query, indexes)
-        d.answer = safe_indexing(self.answer, indexes)
-        d.context = safe_indexing(self.context, indexes)
+    def filter(self, key):
+        return self[key]
 
-        return d
+
+class Data:
+
+    def __init__(self):
+        self.train = None
+        self.test = None
+        self.vocab = None
+        self.train_stories = None
+        self.test_stories = None
 
 
 class DataReader:
@@ -129,4 +139,15 @@ class RemoteDataReader(DataReader):
         train_data = self.__vectorize_stories__(word_idx, train_stories, story_maxlen, query_maxlen, sentences_maxlen)
         test_data = self.__vectorize_stories__(word_idx, test_stories, story_maxlen, query_maxlen, sentences_maxlen)
 
-        return train_data, test_data
+        if 'preload_embeddings' in self._cfg_ and self._cfg_['preload_embeddings']:
+            embedding = self._cfg_['preload_embeddings']
+            self._model_cfg_['pre_trained_embedding'] = GloveLoader(word_idx, embedding_dimension=embedding)
+
+        data = Data()
+        data.train = train_data
+        data.test = test_data
+        data.vocab = vocab
+        data.train_stories = train_stories
+        data.test_stories = test_stories
+
+        return data

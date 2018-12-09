@@ -36,10 +36,12 @@ class DMN(TensorFlowModel):
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
         """
-
         :param model_cfg:
         """
 
+        self._cfg = model_cfg
+
+    def _create_network_(self):
         self._answer = tf.placeholder(tf.float64, [None, 1], name='answer')
         self._story = tf.placeholder(tf.float64, [None, self._story_maxlen,self._sentences_maxlen], name='story')
         self._question = tf.placeholder(tf.float64, [None, self._query_maxlen], name='question')
@@ -98,6 +100,11 @@ class DMN(TensorFlowModel):
 
         display_step = 100
         # How many iterations of training occur before each validation check.
+
+
+
+
+
 
         # Context: A [batch_size, maximum_context_length, word_vectorization_dimensions] tensor
         # that contains all the context information.

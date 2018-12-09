@@ -71,8 +71,10 @@ class RNNModel(KerasModel):
 
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
+        self._cfg = model_cfg
 
-        EMBED_HIDDEN_SIZE = model_cfg['hidden']
+    def _create_network_(self):
+        EMBED_HIDDEN_SIZE = self._cfg['hidden']
 
         story_maxlen = self._story_maxlen
         query_maxlen = self._query_maxlen

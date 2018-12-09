@@ -16,6 +16,7 @@ class EncoderModel(KerasModel):
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
 
+    def _create_network_(self):
         story = Input((self._story_maxlen, ), name='story')
         eb_story = Embedding(self._vocab_size, 64)(story)
         eb_story = Dropout(0.3)(eb_story)

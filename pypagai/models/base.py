@@ -5,10 +5,11 @@ import math
 import logging
 import numpy as np
 import pandas as pd
-from keras.callbacks import Callback, EarlyStopping
+from keras.callbacks import EarlyStopping
 
 from sacred import Ingredient
 from sklearn import preprocessing
+from sklearn.cross_validation import KFold
 
 tb_callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_graph=True, write_images=True)
 
@@ -28,13 +29,21 @@ def default_model_configuration():
 class BaseModel:
     def __init__(self, model_cfg):
         self._model = None
+
+        # Number of kfolds
+        self._splits = model_cfg['kfold_splits'] if 'kfold_splits' in model_cfg else 2
+
+        # Verbose mode
         self._verbose = model_cfg['verbose'] if 'verbose' in model_cfg else False
 
+        # Skip experiment with kfolds. When it is False skip kfold validation and go thought train all dataset directly
+        self._experiment = model_cfg['experiment'] if 'experiment' in model_cfg else False
+
+        self._maximum_acc = model_cfg['maximum_acc'] if 'maximum_acc' in model_cfg else 1
         self._vocab_size = model_cfg['vocab_size']
         self._story_maxlen = model_cfg['story_maxlen']
         self._query_maxlen = model_cfg['query_maxlen']
         self._sentences_maxlen = model_cfg['sentences_maxlen']
-        self._maximum_acc = model_cfg['maximum_acc'] if 'maximum_acc' in model_cfg else 1
 
     @staticmethod
     def default_config():
@@ -42,10 +51,30 @@ class BaseModel:
             'maximum_acc': 1,
         }
 
-    def print(self):
-        LOG.info(self._model)
+    def name(self):
+        return self.__class__.__name__
 
-    def train(self, data, valid=None):
+    def print(self):
+        LOG.info(self.name())
+
+    def train(self, data):
+
+        fold = 0
+        final_report = pd.DataFrame()
+        fold_list = KFold(len(data.answer), self._splits) if self._experiment else [(range(len(data.answer)), [])]
+        for train_index, valid_index in fold_list:
+            report = self._train_(data[train_index], data[valid_index])
+
+            fold += 1
+            report['fold'] = fold
+            final_report = pd.concat([final_report, report])
+
+        if self._experiment:
+            self._train_(data, None)
+
+        return final_report
+
+    def _train_(self, data, valid=None):
         raise Exception("Not implemented")
 
     def predict(self, data):
@@ -63,7 +92,7 @@ class SciKitModel(BaseModel):
         self._model = model_cfg['model']
         self._le = preprocessing.LabelBinarizer()
 
-    def train(self, data, valid=None):
+    def _train_(self, data, valid=None):
         self._le.fit(np.array([data.answer]).T)
         trans = self._network_input_(self._le.fit_transform, data)
         # answer = self._le.transform(np.array([data.answer]).T)
@@ -119,33 +148,33 @@ class BaseNeuralNetworkModel(BaseModel):
             return [data.context, data.query]
 
 
-class TestCallback(Callback):
-    def __init__(self, test_data, maximum=1.0, log_every=50, verbose=False):
-        super().__init__()
-        self._test_data = test_data
-        self._maximum = maximum
-        self._verbose = verbose
-        self._log_every = log_every
-        self._stopped_epoch = 0
-
-    def on_epoch_end(self, epoch, logs=None):
-
-        if epoch % self._log_every != 0 or epoch == 0:
-            return
-
-        x, y = self._test_data
-        loss, acc = self.model.evaluate(x, y, verbose=self._verbose)
-
-        if self._verbose:
-            LOG.info('[TEST SET] epoch: {} - loss: {}, acc: {}\n'.format(epoch, loss, acc))
-
-        if acc > self._maximum:
-            self._stopped_epoch = epoch
-            self.model.stop_training = True
-
-    def on_train_end(self, logs=None):
-        if self._stopped_epoch > 0 and self._verbose:
-            LOG.debug('Epoch %05d: early stopping' % (self._stopped_epoch + 1))
+# class TestCallback(Callback):
+#     def __init__(self, test_data, maximum=1.0, log_every=50, verbose=False):
+#         super().__init__()
+#         self._test_data = test_data
+#         self._maximum = maximum
+#         self._verbose = verbose
+#         self._log_every = log_every
+#         self._stopped_epoch = 0
+#
+#     def on_epoch_end(self, epoch, logs=None):
+#
+#         if epoch % self._log_every != 0 or epoch == 0:
+#             return
+#
+#         x, y = self._test_data
+#         loss, acc = self.model.evaluate(x, y, verbose=self._verbose)
+#
+#         if self._verbose:
+#             LOG.info('[TEST SET] epoch: {} - loss: {}, acc: {}\n'.format(epoch, loss, acc))
+#
+#         if acc > self._maximum:
+#             self._stopped_epoch = epoch
+#             self.model.stop_training = True
+#
+#     def on_train_end(self, logs=None):
+#         if self._stopped_epoch > 0 and self._verbose:
+#             LOG.debug('Epoch %05d: early stopping' % (self._stopped_epoch + 1))
 
 
 class KerasModel(BaseNeuralNetworkModel):
@@ -155,28 +184,35 @@ class KerasModel(BaseNeuralNetworkModel):
     https://ethancaballero.pythonanywhere.com/
     """
 
-    def train(self, data, valid=None):
+    def __build_model__(self):
+        self._create_network_()
+        return self._model
+
+    def _create_network_(self):
+        raise Exception("Not implemented")
+
+    def _train_(self, data, valid=None):
         """
         Train models with neural network inputs "story" and "question" with the expected result "answer"
         """
         nn_input = self._network_input_(data)
-        nn_input_test = self._network_input_(valid)
+        nn_input_valid = self._network_input_(valid) if valid and len(valid.answer) > 0 else None
 
         cb = [EarlyStopping(patience=self._patience)]
-        cb += [TestCallback((nn_input_test, valid.answer),
-                            self._maximum_acc,
-                            log_every=self._log_every,
-                            verbose=self._verbose)]
         cb += [tb_callback] if self._keras_log else []
 
+        self._model = self.__build_model__()
         self._model.fit(nn_input, data.answer,
-                        # validation_split=0.2,
                         callbacks=cb,
-                        verbose=self._verbose,
-                        batch_size=self._batch_size,
-                        epochs=self._epochs)
+                        epochs=self._epochs,
+                        verbose=2 if self._verbose else 0,
+                        validation_data=(nn_input_valid, valid.answer) if valid and len(valid.answer) > 0 else None)
 
-        return pd.DataFrame(self._model.history.history)
+        report = pd.DataFrame(self._model.history.history)
+        report = report.reset_index()
+        report = report.rename(columns={'index': 'epoch'})
+
+        return report
 
     def predict(self, data):
         nn_input = self._network_input_(data)
@@ -185,7 +221,6 @@ class KerasModel(BaseNeuralNetworkModel):
 
 
 class TensorFlowModel(BaseNeuralNetworkModel):
-
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
 
@@ -197,7 +232,7 @@ class TensorFlowModel(BaseNeuralNetworkModel):
         self._loss_op = None
         self._accuracy = None
 
-    def train(self, data, valid=None):
+    def _train_(self, data, valid=None):
 
         # Run the initializer
         self._sess = tf.Session()
@@ -213,9 +248,9 @@ class TensorFlowModel(BaseNeuralNetworkModel):
             size = len(nn_input[0])
             for batch in range(math.ceil(size / self._batch_size)):
                 self._sess.run(self._train_op, feed_dict={
-                    self._story: nn_input[0][batch*self._batch_size:(batch+1)*self._batch_size],
-                    self._question: nn_input[1][batch*self._batch_size:(batch+1)*self._batch_size],
-                    self._answer: np.array([data.answer[batch*self._batch_size:(batch+1)*self._batch_size]]).T})
+                    self._story: nn_input[0][batch * self._batch_size:(batch + 1) * self._batch_size],
+                    self._question: nn_input[1][batch * self._batch_size:(batch + 1) * self._batch_size],
+                    self._answer: np.array([data.answer[batch * self._batch_size:(batch + 1) * self._batch_size]]).T})
 
             if step % self._log_every == 0 or step == 1:
                 # Calculate batch loss and accuracy
@@ -254,15 +289,14 @@ class TensorFlowModel(BaseNeuralNetworkModel):
         encoding[:, -1] = 1.0
         return np.transpose(encoding)
 
-    # def positional_encoding(self):
-    #         D, M, N = self.params.embed_size, self.params.max_sent_size, self.params.batch_size
-    #     encoding = np.zeros([M, D])
-    #     for j in range(M):
-    #         for d in range(D):
-    #             encoding[j, d] = (1 - float(j)/M) - (float(d)/D)*(1 - 2.0*j/M)
+        # def positional_encoding(self):
+        #         D, M, N = self.params.embed_size, self.params.max_sent_size, self.params.batch_size
+        #     encoding = np.zeros([M, D])
+        #     for j in range(M):
+        #         for d in range(D):
+        #             encoding[j, d] = (1 - float(j)/M) - (float(d)/D)*(1 - 2.0*j/M)
 
         # return encoding
-
 
     def predict(self, data):
         nn_input = self._network_input_(data)

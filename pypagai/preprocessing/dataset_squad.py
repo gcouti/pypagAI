@@ -29,7 +29,7 @@ class SQuADataset(RemoteDataReader):
         data = []
         readed_data = json.load(open(f))
 
-        for data_dict in readed_data['data'][0:100]:
+        for data_dict in readed_data['data']:
             for paragraph in data_dict['paragraphs']:
                 if self.__strip_sentences__:
                     story = []
@@ -41,6 +41,8 @@ class SQuADataset(RemoteDataReader):
                     question = self._parser_.tokenize(qas['question'])
                     for ans in qas['answers']:
                         answer = self._parser_.tokenize(ans['text'])
+                        if len(answer) == 0 or len(answer) > 1:
+                            continue
                         # TODO: Fix answer with more than one words
                         data.append((story, question, answer[0]))
 

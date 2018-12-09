@@ -1,6 +1,8 @@
 import logging
 import logging.config
 import os
+import numpy as np
+
 from datetime import datetime
 
 from sacred import Experiment
@@ -8,7 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVC
 
-from pypagai.experiments.evaluation import evaluate_results, make_result_frame, classification_report
+from pypagai.experiments.evaluation import evaluate_results, make_result_frame, classification_report, make_examples
 from pypagai.experiments.observers import PypagAIFileStorageObserver
 from pypagai.models.base import model_ingredient, SciKitModel
 from pypagai.preprocessing.read_data import data_ingredient
@@ -92,7 +94,7 @@ def rf_config():
 
     model_cfg = {}
     model_cfg.update(model.default_config())
-    model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1,  param_grid={})
+    model_cfg['model'] = GridSearchCV(RandomForestClassifier(), n_jobs=-1, param_grid={})
 
 
 @ex.automain
@@ -104,25 +106,28 @@ def run(_run):
     """
     LOG.info("[START] Experiments")
 
-    train, test = read_data()
+    data = read_data()
     estimator = read_model()
     estimator.print()
 
-    report = estimator.train(train, test)
+    train_results = estimator.train(data.train)
 
     # Test estimators
-    test_pred = estimator.predict(test)
-    test_results = make_result_frame(test_pred, test.answer)
+    test_pred = estimator.predict(data.test)
+    test_results = make_result_frame(data.test.answer, test_pred,)
+    test_examples = make_examples(data.test.answer, test_pred, data.test_stories, data.vocab)
 
+    target_names = [data.vocab[i-1] for i in list(np.unique(np.concatenate([data.test.answer, test_pred])))]
     # Print results
     _run.info = {
         'raw_results': {
-            'test': test_results
+            'test': test_results,
+            'examples': test_examples
         },
 
         'report': {
-            'train': report,
-            'test': classification_report(test_pred, test.answer)
+            'train': train_results,
+            'test': classification_report(test_pred, data.test.answer, target_names=target_names)
         },
 
         'metrics': {

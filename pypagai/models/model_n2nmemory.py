@@ -1,5 +1,5 @@
 from keras import Input, Model, Sequential
-from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense
+from keras.layers import Embedding, Dropout, dot, Activation, Permute, add, concatenate, SimpleRNN, Dense, LSTM
 from keras.optimizers import Adam
 
 from pypagai.models.base import KerasModel
@@ -40,16 +40,7 @@ class N2NMemory(KerasModel):
         a null symbol was used to pad them all to a fixed size. The embedding of the null symbol was constrained to
         be zero.
         """
-
-        # placeholders
-        input_sequence = Input((self._story_maxlen, ))
-        question = Input((self._query_maxlen,))
-
-        answer = self.create_network(input_sequence, question, model_cfg)
-
-        # build the final model
-        self._model = Model([input_sequence, question], answer)
-        self._model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        self._cfg = model_cfg
 
     @staticmethod
     def default_config():
@@ -57,22 +48,34 @@ class N2NMemory(KerasModel):
         config['dropout'] = 0.3
         config['activation'] = 'softmax'
         config['samples'] = 32
-        config['embedding'] = 64
+        config['embedding'] = 100
+        config['layers'] = 1
 
         return config
 
-    def create_network(self, input_sequence, question, cfg):
+    def _create_network_(self):
+        # placeholders
+        input_sequence = Input((self._story_maxlen, ))
+        question = Input((self._query_maxlen,))
 
-        drop_out = cfg['dropout']
-        activation = cfg['activation']
-        samples = cfg['samples']
-        embedding = cfg['embedding']
+        drop_out = self._cfg['dropout']
+        activation = self._cfg['activation']
+        embedding = self._cfg['embedding']
+        layers = self._cfg['layers']
 
         # encoders
         # embed the input sequence into a sequence of vectors
 
         input_encoder_m = Sequential()
-        input_encoder_m.add(Embedding(input_dim=self._vocab_size, output_dim=embedding))
+
+        if 'pre_trained_embedding' in self._cfg:
+            dim = self._cfg['pre_trained_embedding'].embedding_dimension
+            matrix = self._cfg['pre_trained_embedding'].embedding_matrix
+            ebd = Embedding(input_dim=self._vocab_size, weights=[matrix], output_dim=dim)
+            input_encoder_m.add(ebd)
+        else:
+            input_encoder_m.add(Embedding(input_dim=self._vocab_size, output_dim=embedding))
+
         input_encoder_m.add(Dropout(drop_out))
         # output: (samples, story_maxlen, embedding_dim)
 
@@ -94,27 +97,31 @@ class N2NMemory(KerasModel):
         input_encoded_c = input_encoder_c(input_sequence)
         question_encoded = question_encoder(question)
 
-        # compute a 'match' between the first input vector sequence
-        # and the question vector sequence
-        # shape: `(samples, story_maxlen, query_maxlen)`
-        match = dot([input_encoded_m, question_encoded], axes=(2, 2))
-        match = Activation(activation)(match)
+        for i in range(layers):
+            # compute a 'match' between the first input vector sequence
+            # and the question vector sequence
+            # shape: `(samples, story_maxlen, query_maxlen)`
+            match = dot([input_encoded_m, question_encoded], axes=(2, 2))
+            match = Activation(activation)(match)
 
-        # add the match matrix with the second input vector sequence
-        response = add([match, input_encoded_c])  # (samples, story_maxlen, query_maxlen)
-        response = Permute((2, 1))(response)  # (samples, query_maxlen, story_maxlen)
+            # add the match matrix with the second input vector sequence
+            response = add([match, input_encoded_c])  # (samples, story_maxlen, query_maxlen)
+            response = Permute((2, 1))(response)  # (samples, query_maxlen, story_maxlen)
 
-        # concatenate the match matrix with the question vector sequence
-        answer = concatenate([response, question_encoded])
+            # concatenate the match matrix with the question vector sequence
+            question_encoded = concatenate([response, question_encoded])
 
-        # the original paper uses a matrix multiplication for this reduction step.
-        # we choose to use a RNN instead.
-        answer = SimpleRNN(samples)(answer)  # (samples, 32)
+            # the original paper uses a matrix multiplication for this reduction step.
+            # we choose to use a RNN instead.
+            question_encoded = LSTM(embedding, return_sequences=i < layers -1)(question_encoded)  # (samples, 32)
 
         # one regularization layer -- more would probably be needed.
-        answer = Dropout(drop_out)(answer)
+        answer = Dropout(drop_out)(question_encoded)
         answer = Dense(self._vocab_size)(answer)  # (samples, vocab_size)
         # we output a probability distribution over the vocabulary
 
-        return Activation(activation)(answer)
+        answer = Activation(activation)(answer)
 
+        # build the final model
+        self._model = Model([input_sequence, question], answer)
+        self._model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy', metrics=['accuracy'])

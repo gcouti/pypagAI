@@ -54,11 +54,9 @@ class RN(KerasModel):
 
         return config
 
-    def __init__(self, cfg):
-        super().__init__(cfg)
-
-        EMBED_SIZE = cfg['embed-size']
-        LSTM_UNITS = cfg['lstm-units']
+    def _create_network_(self):
+        EMBED_SIZE = self._cfg_['embed-size']
+        LSTM_UNITS = self._cfg_['lstm-units']
 
         story = Input((self._story_maxlen, self._sentences_maxlen,), name='story')
         labels = Input((self._sentences_maxlen,), name='labels')
@@ -105,3 +103,7 @@ class RN(KerasModel):
 
         self._model = Model(inputs=[story, question, labels], outputs=response)
         self._model.compile(optimizer=Adam(clipnorm=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._cfg_ = cfg

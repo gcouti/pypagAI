@@ -83,10 +83,11 @@ class ConvLSTM(KerasModel):
         return config
 
     def __init__(self, model_cfg):
-
         super().__init__(model_cfg)
+        self._cfg = model_cfg
 
-        hidden = model_cfg['hidden']
+    def _create_network_(self):
+        hidden = self._cfg['hidden']
 
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')
