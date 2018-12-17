@@ -16,10 +16,12 @@ class SimpleLSTM(KerasModel):
 
         return config
 
-    def __init__(self, model_cfg):
-        super().__init__(model_cfg)
-        hidden = model_cfg['hidden']
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._cfg_ = cfg
 
+    def _create_network_(self):
+        hidden = self._cfg_['hidden']
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')
 
@@ -46,11 +48,12 @@ class EmbedLSTM(KerasModel):
 
         return config
 
-    def __init__(self, model_cfg):
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._cfg_ = cfg
 
-        super().__init__(model_cfg)
-
-        hidden = model_cfg['hidden']
+    def _create_network_(self):
+        hidden = self._cfg_['hidden']
 
         story = Input((self._story_maxlen, ), name='story')
         question = Input((self._query_maxlen, ), name='question')

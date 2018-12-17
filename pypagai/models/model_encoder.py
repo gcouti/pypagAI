@@ -13,8 +13,9 @@ class EncoderModel(KerasModel):
 
         return config
 
-    def __init__(self, model_cfg):
-        super().__init__(model_cfg)
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._cfg_ = cfg
 
     def _create_network_(self):
         story = Input((self._story_maxlen, ), name='story')

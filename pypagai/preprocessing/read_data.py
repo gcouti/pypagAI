@@ -8,6 +8,7 @@ from nltk import flatten
 from sacred import Ingredient
 
 from pypagai.preprocessing.parser import NoStopWordsParser
+from pypagai.util.class_loader import ClassLoader
 from pypagai.util.glove import GloveLoader
 
 LOG = logging.getLogger('pypagai-logger')
@@ -20,9 +21,9 @@ def default_dataset_configuration():
     Dataset configuration
     """
     reader = 'pypagai.preprocessing.dataset_babi.BaBIDataset'  # Path to dataset reader
-    parser = NoStopWordsParser    # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
-    strip_sentences = False  # Property to split sentences
-    preload_embeddings = False
+    parser = NoStopWordsParser  # Path to dataset parser ex.: pypagai.preprocessing.parser.SimpleParser
+    strip_sentences = False     # Property to split sentences
+    preload_embeddings = False  # Load pre trained embeddings
 
 
 class ProcessedData:
@@ -62,7 +63,11 @@ class DataReader:
     def __init__(self, reader_cfg, model_cfg):
         self._cfg_ = reader_cfg
         self._model_cfg_ = model_cfg
-        self._parser_ = self._cfg_['parser']()
+
+        if isinstance(self._cfg_['parser'], str):
+            self._parser_ = ClassLoader().load(self._cfg_['parser'])()
+        else:
+            self._parser_ = self._cfg_['parser']()
 
     @staticmethod
     def default_config():

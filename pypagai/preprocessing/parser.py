@@ -40,4 +40,4 @@ class NoStopWordsParser:
         ['Bob', 'dropped', 'apple', 'Where', 'is', 'apple']
         """
         tokenizer = RegexpTokenizer(r'\w+')
-        return [x.strip().lower() for x in tokenizer.tokenize(sent) if x.strip() not in self.__stop_words__]
+        return [x.strip().lower() for x in tokenizer.tokenize(sent.lower()) if x.strip() not in self.__stop_words__]

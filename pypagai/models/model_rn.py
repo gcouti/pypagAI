@@ -45,6 +45,9 @@ class RN(KerasModel):
     https://github.com/sujitpal/dl-models-for-qa
 
     """
+    def __init__(self, cfg):
+        super().__init__(cfg)
+        self._cfg_ = cfg
 
     @staticmethod
     def default_config():
@@ -104,7 +107,3 @@ class RN(KerasModel):
 
         self._model = Model(inputs=[story, question, labels], outputs=response)
         self._model.compile(optimizer=Adam(clipnorm=2e-4), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-    def __init__(self, cfg):
-        super().__init__(cfg)
-        self._cfg_ = cfg
