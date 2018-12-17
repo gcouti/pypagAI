@@ -80,7 +80,7 @@ class CBTDataset(RemoteDataReader):
 
         challenges = {
             'CN': 'CBTest/data/cbtest_CN_cbt_{}.txt',
-            'NE': 'CBTest/data/cbtest_N_{}.txt',
+            'NE': 'CBTest/data/cbtest_NE_{}.txt',
             'P': 'CBTest/data/cbtest_P_{}.txt',
             'V': 'CBTest/data/cbtest_V_{}.txt',
             # 'generic': 'CBTest/data/cbt_{}.txt',
