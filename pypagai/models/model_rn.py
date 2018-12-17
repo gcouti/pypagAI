@@ -99,6 +99,7 @@ class RN(KerasModel):
 
         response = Dense(256, activation='relu')(response)
         response = Dense(512, activation='relu')(response)
+
         response = Dense(self._vocab_size, activation='softmax')(response)
 
         self._model = Model(inputs=[story, question, labels], outputs=response)

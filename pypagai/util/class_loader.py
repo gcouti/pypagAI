@@ -41,4 +41,5 @@ class DatasetLoader(ClassLoader):
         return {
             'babi': 'pypagai.preprocessing.dataset_babi.BaBIDataset',
             'squad': 'pypagai.preprocessing.dataset_squad.SQuADataset',
+            'cbt': 'pypagai.preprocessing.dataset_cbt.CBTDataset',
         }

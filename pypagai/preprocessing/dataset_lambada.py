@@ -5,13 +5,17 @@ from keras.utils import get_file
 from pypagai.preprocessing.read_data import RemoteDataReader
 
 
-class BaBIDataset(RemoteDataReader):
-    ALIAS = 'babi'
-    __URL__ = 'https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz'
+class CBTDataset(RemoteDataReader):
+    ALIAS = 'lambada'
+    # You can now download the dataset from the link:
+    # http://clic.cimec.unitn.it/lambada/lambada-dataset.tar.gz
+    #
+    # You can now download the rejected data from the link:
+    # http://clic.cimec.unitn.it/lambada/rejected-data1.tar.gz
+    __URL__ = 'http://www.thespermwhale.com/jaseweston/babi/CBTest.tgz'
 
     def __init__(self, reader_cfg, model_cfg):
         super().__init__(reader_cfg, model_cfg)
-        self.__size__ = '-' + reader_cfg['size'] if 'size' in reader_cfg else ''
         self.__task__ = reader_cfg['task']
         self.__max_size__ = 20
         self.__only_supporting__ = reader_cfg['only_supporting'] if 'only_supporting' in reader_cfg else False
@@ -20,8 +24,7 @@ class BaBIDataset(RemoteDataReader):
     @staticmethod
     def default_config():
         return {
-            'task': 1,
-            'size': '10k',
+            'task': 'all',
         }
 
     def parse_stories(self, lines, only_supporting=False):
@@ -38,9 +41,9 @@ class BaBIDataset(RemoteDataReader):
             if nid == 1:
                 story = []
             if '\t' in line:
-                q, a, supporting = line.split('\t')
+                q, a,_,supporting = line.split('\t')
                 q = self._parser_.tokenize(q)
-
+                substory = None
                 if only_supporting:
                     # Only select the related substory
                     supporting = list(map(int, supporting.split()))
@@ -50,7 +53,6 @@ class BaBIDataset(RemoteDataReader):
                 else:
                     # Provide all the substories
                     substory = [x for x in story if x]
-
                 data.append((substory, q, a))
                 story.append('')
             else:
@@ -76,38 +78,29 @@ class BaBIDataset(RemoteDataReader):
     def _download_(self):
 
         challenges = {
-            '1': 'tasks_1-20_v1-2/en{}/qa1_single-supporting-fact_{}.txt',
-            '2': 'tasks_1-20_v1-2/en{}/qa2_two-supporting-facts_{}.txt',
-            '3': 'tasks_1-20_v1-2/en{}/qa3_three-supporting-facts_{}.txt',
-            '4': 'tasks_1-20_v1-2/en{}/qa4_two-arg-relations_{}.txt',
-            '5': 'tasks_1-20_v1-2/en{}/qa5_three-arg-relations_{}.txt',
-            '6': 'tasks_1-20_v1-2/en{}/qa6_yes-no-questions_{}.txt',
-            '7': 'tasks_1-20_v1-2/en{}/qa7_counting_{}.txt',
-            '8': 'tasks_1-20_v1-2/en{}/qa8_lists-sets_{}.txt',
-            '9': 'tasks_1-20_v1-2/en{}/qa9_simple-negation_{}.txt',
-            '10': 'tasks_1-20_v1-2/en{}/qa10_indefinite-knowledge_{}.txt',
-            '11': 'tasks_1-20_v1-2/en{}/qa11_basic-coreference_{}.txt',
-            '12': 'tasks_1-20_v1-2/en{}/qa12_conjunction_{}.txt',
-            '13': 'tasks_1-20_v1-2/en{}/qa13_compound-coreference_{}.txt',
-            '14': 'tasks_1-20_v1-2/en{}/qa14_time-reasoning_{}.txt',
-            '15': 'tasks_1-20_v1-2/en{}/qa15_basic-deduction_{}.txt',
-            '16': 'tasks_1-20_v1-2/en{}/qa16_basic-induction_{}.txt',
-            '17': 'tasks_1-20_v1-2/en{}/qa17_positional-reasoning_{}.txt',
-            '18': 'tasks_1-20_v1-2/en{}/qa18_size-reasoning_{}.txt',
-            '19': 'tasks_1-20_v1-2/en{}/qa19_path-finding_{}.txt',
-            '20': 'tasks_1-20_v1-2/en{}/qa20_agents-motivations_{}.txt',
+            'CN': 'CBTest/data/cbtest_CN_cbt_{}.txt',
+            'NE': 'CBTest/data/cbtest_N_{}.txt',
+            'P': 'CBTest/data/cbtest_P_{}.txt',
+            'V': 'CBTest/data/cbtest_V_{}.txt',
+            # 'generic': 'CBTest/data/cbt_{}.txt',
         }
 
-        path = get_file('babi-tasks-v1-2.tar.gz', origin=self.__URL__)
-
-        challenge = challenges[str(self.__task__)]
+        path = get_file('CBTest.tar', origin=self.__URL__)
 
         with tarfile.open(path) as tar:
 
-            ex_file = tar.extractfile(challenge.format(self.__size__, 'train'))
+            challenge = challenges[self.__task__]
+            train = 'train'
+            valid = 'valid_2000ex'
+            test = 'test_2500ex'
+
+            ex_file = tar.extractfile(challenge.format(train))
             train_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
 
-            ex_file = tar.extractfile(challenge.format(self.__size__, 'test'))
+            ex_file = tar.extractfile(challenge.format(valid))
+            train_stories += self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
+
+            ex_file = tar.extractfile(challenge.format(test))
             test_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
 
         return train_stories, test_stories

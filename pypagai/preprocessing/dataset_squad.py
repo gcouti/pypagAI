@@ -14,6 +14,9 @@ class SQuADataset(RemoteDataReader):
         super().__init__(reader_cfg, model_cfg)
         self.__dataset_version__ = reader_cfg['version'] if 'version' in reader_cfg else '1.1'
         self.__strip_sentences__ = reader_cfg['strip_sentences'] if 'strip_sentences' in reader_cfg else False
+        self.__limit__ = reader_cfg['limit'] if 'limit' in reader_cfg else 999999999
+        self.__is_span__ = reader_cfg['is_span'] if 'is_span' in reader_cfg else True
+
 
     @staticmethod
     def default_config():
@@ -29,7 +32,7 @@ class SQuADataset(RemoteDataReader):
         data = []
         readed_data = json.load(open(f))
 
-        for data_dict in readed_data['data']:
+        for data_dict in readed_data['data'][:self.__limit__]:
             for paragraph in data_dict['paragraphs']:
                 if self.__strip_sentences__:
                     story = []
@@ -40,11 +43,13 @@ class SQuADataset(RemoteDataReader):
                 for qas in paragraph['qas']:
                     question = self._parser_.tokenize(qas['question'])
                     for ans in qas['answers']:
-                        answer = self._parser_.tokenize(ans['text'])
-                        if len(answer) == 0 or len(answer) > 1:
-                            continue
-                        # TODO: Fix answer with more than one words
-                        data.append((story, question, answer[0]))
+                        if self.__is_span__:
+                            data.append((story, question, [ans['answer_start'], ans['answer_start'] + len(ans['text'])]))
+                        else:
+                            answer = self._parser_.tokenize(ans['text'])
+                            if len(answer) == 0 or len(answer) > 1:
+                                continue
+                            data.append((story, question, answer[0]))
 
         # TODO: Fix strip sentences
         # TODO: Fix sentence max length

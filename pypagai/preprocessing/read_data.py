@@ -91,7 +91,7 @@ class RemoteDataReader(DataReader):
                 inputs.append([word_idx[w] for w in story])
 
             queries.append([word_idx[w] for w in query])
-            answers.append(word_idx[answer])
+            answers.append(word_idx[answer] if isinstance(answer, str) else answer)
 
         dt = ProcessedData()
         dt.context = pad_sequences(inputs, maxlen=story_maxlen)
@@ -106,7 +106,9 @@ class RemoteDataReader(DataReader):
 
         vocab = set()
         for story, q, answer in train_stories + test_stories:
-            vocab |= set(flatten(story) + q + [answer])
+            vocab |= set(flatten(story) + q)
+            vocab |= {answer} if isinstance(answer, str) else set()
+
         vocab = sorted(vocab)
 
         # Reserve 0 for masking via pad_sequences
@@ -140,6 +142,7 @@ class RemoteDataReader(DataReader):
         test_data = self.__vectorize_stories__(word_idx, test_stories, story_maxlen, query_maxlen, sentences_maxlen)
 
         if 'preload_embeddings' in self._cfg_ and self._cfg_['preload_embeddings']:
+            LOG.info("Using pre-trained embeddings")
             embedding = self._cfg_['preload_embeddings']
             self._model_cfg_['pre_trained_embedding'] = GloveLoader(word_idx, embedding_dimension=embedding)
 
