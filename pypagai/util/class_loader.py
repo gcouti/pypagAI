@@ -2,6 +2,9 @@ from pydoc import locate
 
 
 class ClassLoader:
+    """
+    Load classes with string
+    """
 
     def _aliases_(self):
         raise Exception("It mus be implemented by children class")

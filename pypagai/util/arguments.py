@@ -1,7 +1,7 @@
 import argparse
 
 
-class PypagaiParser(argparse.ArgumentParser):
+class PyPagAIParser(argparse.ArgumentParser):
     """
     Add arguments
     """

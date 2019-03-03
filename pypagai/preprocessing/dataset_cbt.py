@@ -79,7 +79,7 @@ class CBTDataset(RemoteDataReader):
     def _download_(self):
 
         challenges = {
-            'CN': 'CBTest/data/cbtest_CN_cbt_{}.txt',
+            'CN': 'CBTest/data/cbtest_CN_{}.txt',
             'NE': 'CBTest/data/cbtest_NE_{}.txt',
             'P': 'CBTest/data/cbtest_P_{}.txt',
             'V': 'CBTest/data/cbtest_V_{}.txt',
@@ -98,8 +98,9 @@ class CBTDataset(RemoteDataReader):
             ex_file = tar.extractfile(challenge.format(train))
             train_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
 
-            ex_file = tar.extractfile(challenge.format(valid))
-            train_stories += self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
+            # TODO: Uncomment this, after check the results of paper
+            # ex_file = tar.extractfile(challenge.format(valid))
+            # train_stories += self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)
 
             ex_file = tar.extractfile(challenge.format(test))
             test_stories = self.__get_stories__(ex_file, only_supporting=self.__only_supporting__)

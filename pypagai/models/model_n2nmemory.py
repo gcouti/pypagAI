@@ -73,6 +73,9 @@ class N2NMemory(KerasModel):
             matrix = self._cfg['pre_trained_embedding'].embedding_matrix
             ebd = Embedding(input_dim=self._vocab_size, weights=[matrix], output_dim=dim)
             input_encoder_m.add(ebd)
+        elif 'elmo' in self._cfg:
+            # http://hunterheidenreich.com/blog/elmo-word-vectors-in-keras/
+            pass
         else:
             input_encoder_m.add(Embedding(input_dim=self._vocab_size, output_dim=embedding))
 
