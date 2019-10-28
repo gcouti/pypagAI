@@ -1,6 +1,4 @@
 import logging
-import os
-import tarfile
 import zipfile
 
 import numpy as np
@@ -32,8 +30,6 @@ class GloveLoader:
     def __read_vectors__(self):
         """
         Read vectors from glove
-
-        :param glove_dir:
         """
         path = get_file(self.__GLOVE_FILE__, origin=self.__URL__, cache_subdir=self.__EMBEDDING_CACHE_FOLDER__)
 

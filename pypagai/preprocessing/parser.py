@@ -1,8 +1,8 @@
 import re
-from nltk.tokenize import RegexpTokenizer
-from nltk import word_tokenize
-from nltk.corpus import stopwords
 import string
+
+from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer
 
 
 class SimpleParser:

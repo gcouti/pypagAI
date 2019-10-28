@@ -1,12 +1,11 @@
 from __future__ import print_function
 
 import itertools
-from keras.layers import Input, Embedding, LSTM, Reshape, concatenate, regularizers, Bidirectional, Conv1D, \
-    MaxPooling1D, Permute, Conv2D, MaxPooling2D, SimpleRNN
+
+from keras.layers import Input, Embedding, LSTM, Reshape, concatenate, regularizers, Bidirectional
 from keras.layers.core import Dense, Dropout, Lambda
 from keras.models import Model
 from keras.optimizers import Adam
-from keras.backend import stack
 
 from pypagai.models.base import KerasModel
 
@@ -43,6 +42,8 @@ class RN(KerasModel):
     https://github.com/gitlimlab/Relation-Network-Tensorflow/blob/master/model_rn.py
     https://github.com/kimhc6028/relational-networks/blob/master/model.py
     https://github.com/sujitpal/dl-models-for-qa
+    https://github.com/jayjinseokkim/relation-network/blob/master/train.py
+    https://github.com/moduIo/Relation-Networks/blob/master/misc/RN.py
 
     """
     def __init__(self, cfg):
