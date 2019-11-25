@@ -1,3 +1,4 @@
+import overrides as overrides
 from keras import Model, Input
 from keras.layers import RNN, Embedding, Dropout, RepeatVector, add, Dense, LSTM
 
@@ -73,7 +74,7 @@ class RNNModel(KerasModel):
         super().__init__(model_cfg)
         self._cfg = model_cfg
 
-    @overrides(KerasModel)
+    # @overrides(KerasModel)
     def _create_network_(self):
         EMBED_HIDDEN_SIZE = self._cfg['hidden']
 

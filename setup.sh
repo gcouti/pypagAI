@@ -6,5 +6,5 @@ sudo apt-get install -y g++ python3-dev libjpeg-dev libfreetype6 libfreetype6-de
 virtualenv -p /usr/bin/python3 .env
 source .env/bin/activate
 
-pip install -r source/requirements.txt
-pip install -e source/.
+pip install -r requirements.txt
+pip install -e .

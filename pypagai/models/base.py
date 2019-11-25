@@ -11,6 +11,8 @@ from sacred import Ingredient
 from sklearn import preprocessing
 from sklearn.cross_validation import KFold
 
+from pypagai.util.class_loader import ClassLoader
+
 tb_callback = keras.callbacks.TensorBoard(log_dir='.log/', histogram_freq=0, write_graph=True, write_images=True)
 
 LOG = logging.getLogger('pypagai-logger')
@@ -63,7 +65,8 @@ class BaseModel:
         final_report = pd.DataFrame()
         fold_list = KFold(len(data.answer), self._splits) if self._experiment else [(range(len(data.answer)), [])]
         for train_index, valid_index in fold_list:
-            report = self._train_(data[train_index], data[valid_index])
+            report = pd.DataFrame()
+            self._train_(data[train_index], report, data[valid_index])
 
             fold += 1
             report['fold'] = fold
@@ -74,7 +77,7 @@ class BaseModel:
 
         return final_report
 
-    def _train_(self, data, valid=None):
+    def _train_(self, data, report, valid=None):
         raise Exception("Not implemented")
 
     def predict(self, data):
@@ -85,32 +88,38 @@ class SciKitModel(BaseModel):
     @staticmethod
     def default_config():
         config = BaseModel.default_config()
+
+        config['classifier'] = 'sklearn.ensemble.RandomForestClassifier'
+
         return config
 
     def __init__(self, model_cfg):
         super().__init__(model_cfg)
-        self._model = model_cfg['model']
+        cl = ClassLoader()
+        klass = cl.load(model_cfg['classifier'])
+        self._model = klass()
         self._le = preprocessing.LabelBinarizer()
 
-    def _train_(self, data, valid=None):
+    def _train_(self, data, report, valid=None):
         self._le.fit(np.array([data.answer]).T)
-        trans = self._network_input_(self._le.fit_transform, data)
+        trans = self.__input__(self._le.fit_transform, data)
         # answer = self._le.transform(np.array([data.answer]).T)
 
         self._model.fit(trans, data.answer)
 
     def predict(self, data):
-        trans = self._network_input_(self._le.transform, data)
+        trans = self.__input__(self._le.transform, data)
         pred = self._model.predict(trans)
         return pred
 
     @staticmethod
-    def _network_input_(func, data):
+    def __input__(func, data):
         trans = np.hstack([data.context, data.query])
         shape = trans.shape
         trans = np.reshape(trans, (1, shape[0] * shape[1]))[0]
         trans = func(trans)
         trans = np.reshape(trans, (shape[0], shape[1] * trans.shape[1]))
+
         return trans
 
 
@@ -148,35 +157,6 @@ class BaseNeuralNetworkModel(BaseModel):
             return [data.context, data.query]
 
 
-# class TestCallback(Callback):
-#     def __init__(self, test_data, maximum=1.0, log_every=50, verbose=False):
-#         super().__init__()
-#         self._test_data = test_data
-#         self._maximum = maximum
-#         self._verbose = verbose
-#         self._log_every = log_every
-#         self._stopped_epoch = 0
-#
-#     def on_epoch_end(self, epoch, logs=None):
-#
-#         if epoch % self._log_every != 0 or epoch == 0:
-#             return
-#
-#         x, y = self._test_data
-#         loss, acc = self.model.evaluate(x, y, verbose=self._verbose)
-#
-#         if self._verbose:
-#             LOG.info('[TEST SET] epoch: {} - loss: {}, acc: {}\n'.format(epoch, loss, acc))
-#
-#         if acc > self._maximum:
-#             self._stopped_epoch = epoch
-#             self.model.stop_training = True
-#
-#     def on_train_end(self, logs=None):
-#         if self._stopped_epoch > 0 and self._verbose:
-#             LOG.debug('Epoch %05d: early stopping' % (self._stopped_epoch + 1))
-
-
 class KerasModel(BaseNeuralNetworkModel):
     """
     https://github.com/xkortex/Siraj_Chatbot_Challenge
@@ -191,7 +171,7 @@ class KerasModel(BaseNeuralNetworkModel):
     def _create_network_(self):
         raise Exception("Not implemented")
 
-    def _train_(self, data, valid=None):
+    def _train_(self, data, report, valid=None):
         """
         Train models with neural network inputs "story" and "question" with the expected result "answer"
         """
@@ -232,7 +212,7 @@ class TensorFlowModel(BaseNeuralNetworkModel):
         self._loss_op = None
         self._accuracy = None
 
-    def _train_(self, data, valid=None):
+    def _train_(self, data, report, valid=None):
 
         # Run the initializer
         self._sess = tf.Session()

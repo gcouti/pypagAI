@@ -20,7 +20,12 @@ class ClassLoader:
             if class_path in self._aliases_():
                 class_path = self._aliases_()[class_path]
 
-        return locate(class_path)
+        loaded_class = locate(class_path)
+
+        if loaded_class is None:
+            raise Exception("Could not found class " + class_path)
+
+        return loaded_class
 
 
 class ModelLoader(ClassLoader):

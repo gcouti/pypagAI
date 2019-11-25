@@ -30,6 +30,8 @@ def make_examples(y_true, y_pred, data, vocab, size=3):
     :param y_true:
     :param y_pred:
     :param data:
+    :param vocab: Vocabulary to show in examples
+    :param size: Size of examples5
 
     :return: List of correct and incorrect examples
     """
@@ -44,14 +46,21 @@ def make_examples(y_true, y_pred, data, vocab, size=3):
 
 
 def extract_sample(data, indexes, report, vocab, y_pred, dimension='true'):
+
     for i in indexes:
+        text = " ".join(data[i][0])
         sample = {
-            'text': " ".join(data[i][0]),
+            'text': text,
             'question': " ".join(data[i][1]),
             'correct': data[i][2],
             'predicted': vocab[y_pred[i]-1]
         }
         report[dimension].append(sample)
+
+    for i in range(len(report[dimension]), 3):
+        report[dimension].append({})
+
+    return report
 
 
 def make_result_frame(y_true, y_pred, index=None, repeat=0, fold=0):
@@ -87,7 +96,8 @@ def make_result_frame(y_true, y_pred, index=None, repeat=0, fold=0):
 
 
 def evaluate_results(df_results, metrics=['accuracy']):
-    """ Evaluates a result frame base on the given metrics.
+    """
+    Evaluates a result frame base on the given metrics.
     All scikit-learning string metrics are available.
 
     :param metrics:
@@ -95,7 +105,6 @@ def evaluate_results(df_results, metrics=['accuracy']):
 
     :returns: metrics relatives to both repeat and fold values
     """
-
     def exec_score_func(metric, y_true, y_pred):
         scorer = get_scorer(metric)
         return scorer._score_func(y_true, y_pred, **scorer._kwargs)
