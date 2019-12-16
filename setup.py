@@ -21,7 +21,7 @@ setup(
         'numpy==1.13.3',
         'Pillow==4.3.0',
         'Keras==2.1.5',
-        'tensorflow-gpu==1.7.0',
+        'tensorflow-gpu==1.15.0',
         'tensorflow-tensorboard==0.4.0rc3',
         'h5py==2.7.1',
         'spacy==2.0.3',
