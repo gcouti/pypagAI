@@ -4,7 +4,8 @@
 PypagAI 
 =======
 
-PypagAI is a easy and fast framework to experiment Question Answering (QA) problems
+PypagAI is a framework that aims to quickly develop new QA models, test new datasets and reproduce experiments. The main objective of the framework is to speed up the development of new QA models. Thus, it is necessary to normalize experiments, prepare data, and create a repository of QA models. By building and publishing this framework, we would like to lower the entry barrier for more people to try out.
+
 
 Why PypagAI?
 ============
