@@ -95,7 +95,7 @@ def make_result_frame(y_true, y_pred, index=None, repeat=0, fold=0):
     return pd.DataFrame(result)
 
 
-def evaluate_results(df_results, metrics=['accuracy']):
+def evaluate_results(df_results, metrics=None):
     """
     Evaluates a result frame base on the given metrics.
     All scikit-learning string metrics are available.
@@ -105,6 +105,9 @@ def evaluate_results(df_results, metrics=['accuracy']):
 
     :returns: metrics relatives to both repeat and fold values
     """
+    if metrics is None:
+        metrics = ['accuracy']
+
     def exec_score_func(metric, y_true, y_pred):
         scorer = get_scorer(metric)
         return scorer._score_func(y_true, y_pred, **scorer._kwargs)

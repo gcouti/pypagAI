@@ -1,15 +1,15 @@
 import random
 
 import numpy as np
-from sklearn import preprocessing
-from sklearn.feature_extraction.text import TfidfTransformer, CountVectorizer
+from sklearn.feature_extraction.text import TfidfTransformer
 
 from pypagai.models.base import BaseModel, SciKitModel
 
 
 class RandomModel(BaseModel):
     """
-    Model to choose randomly words on the vocabulary. This model has a purpose of
+    Model to choose randomly words on the vocabulary. This model has a purpose of base line and guarantee
+    all workflow is working as expected
     """
 
     def _train_(self, data, report, valid=None):
@@ -17,15 +17,19 @@ class RandomModel(BaseModel):
 
     def predict(self, data):
         results = []
+
         for i in range(len(data.context)):
             v = data.context[i]
             r = random.choice(np.where(v.flat > 0)[0])
             results.append(v.flat[r])
+
         return results
 
 
 class TFIDFModel(SciKitModel):
-
+    """
+    Weak baseline model uses TF-IDF to ranking terms and choose answer
+    """
     @staticmethod
     def default_config():
         return SciKitModel.default_config()
@@ -39,7 +43,6 @@ class TFIDFModel(SciKitModel):
 
         for i in range(1, np.max(X)+1):
             count_vector = np.column_stack((count_vector, (X[:] == i).sum(axis=1)))
-            #count_vector = np.column_stack((count_vector, (X[:] == i).any(axis=1)))
 
         return count_vector
 

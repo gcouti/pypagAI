@@ -29,19 +29,34 @@ def default_model_configuration():
 
 
 class BaseModel:
+    """
+    Base model is the class used by all model classes in the experiment framework
+
+    It encapsulate common functions and properties used in models. In this same file we have implementations
+    provided by the framework to atend specific implementations for: Keras, Scikit, Tensorflow models
+
+    It receives as parameters configurations of how to test and validate models. The main functions of this class is:
+
+    - evaluate: evaluate models to helping in choosing which is the best parameters
+    - train: train model without cross-validation
+    - predict: user trained model to predict new instances
+    """
+
     def __init__(self, model_cfg):
         self._model = None
 
-        # Number of kfolds
+        # Number of k-folds in validation samples
         self._splits = model_cfg['kfold_splits'] if 'kfold_splits' in model_cfg else 2
 
-        # Verbose mode
+        # Verbose mode on models.
         self._verbose = model_cfg['verbose'] if 'verbose' in model_cfg else False
 
         # Skip experiment with kfolds. When it is False skip kfold validation and go thought train all dataset directly
         self._experiment = model_cfg['experiment'] if 'experiment' in model_cfg else False
 
+        # TODO: I don't remeber why to use this configuration
         self._maximum_acc = model_cfg['maximum_acc'] if 'maximum_acc' in model_cfg else 1
+
         self._vocab_size = model_cfg['vocab_size']
         self._story_maxlen = model_cfg['story_maxlen']
         self._query_maxlen = model_cfg['query_maxlen']
